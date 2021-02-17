@@ -1,1 +1,1 @@
-roughcert
+This project will create a python based client to parse roughtime requests and use the reply to validate local clocks to check validity of TLS certificates. We will implement this as a module/cli tool
