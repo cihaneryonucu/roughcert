@@ -1,5 +1,6 @@
 name: roughcert
 channels:
+  - anaconda
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -9,19 +10,23 @@ dependencies:
   - libedit=3.1.20191231=h14c3975_1
   - libffi=3.3=he6710b0_2
   - libgcc-ng=9.1.0=hdf63c60_0
+  - libsodium=1.0.18=h7b6447c_0
   - libstdcxx-ng=9.1.0=hdf63c60_0
   - ncurses=6.2=he6710b0_1
-  - openssl=1.1.1i=h27cfd23_0
+  - openssl=1.1.1j=h27cfd23_0
   - pip=20.3.3=py38h06a4308_0
   - python=3.8.5=h7579374_1
+  - pyzmq=20.0.0=py38h2531618_1
   - readline=8.1=h27cfd23_0
   - setuptools=52.0.0=py38h06a4308_0
   - sqlite=3.33.0=h62c20be_0
   - tk=8.6.10=hbc83047_0
   - wheel=0.36.2=pyhd3eb1b0_0
   - xz=5.2.5=h7b6447c_0
+  - zeromq=4.3.3=he6710b0_3
   - zlib=1.2.11=h7b6447c_3
   - pip:
     - ed25519==1.5
+    - npyscreen==4.10.5
 prefix: /home/marco/opt/anaconda3/envs/roughcert
 
