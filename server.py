@@ -4,6 +4,9 @@ if __name__ == '__main__':
 import zmq
 import threading
 
+import message_pb2
+
+
 
 class Sender(object):
     def __init__(self, chat_address, chat_port, chat_pipe):

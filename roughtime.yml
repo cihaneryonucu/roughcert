@@ -28,5 +28,7 @@ dependencies:
   - pip:
     - ed25519==1.5
     - npyscreen==4.10.5
+    - protobuf==3.15.1
+    - six==1.15.0
 prefix: /home/marco/opt/anaconda3/envs/roughcert
 
