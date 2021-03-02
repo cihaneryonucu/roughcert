@@ -64,6 +64,29 @@ def generate_self_signed_cert(private_key, filename, cert_details, validity):
 
     return public_key
 
-# key = generate_private_key('a')
-# cert = generate_cert(key,'b',{'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'},10)
-# print(cert)
+def create_csr(private_key, cert_details):
+    subject = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, cert_details["country"]),# Sweden
+            x509.NameAttribute(
+                NameOID.STATE_OR_PROVINCE_NAME, cert_details["region"] # Skåne
+            ),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, cert_details["city"]), # Lund
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, cert_details["org"]), # Cihan-Marco Co.
+            x509.NameAttribute(NameOID.COMMON_NAME, cert_details["hostname"]), #ce-ms.com
+        ]
+    )
+
+    builder = (
+        x509.CertificateSigningRequestBuilder()
+        .subject_name(subject)
+    )
+    csr = builder.sign(private_key, hashes.SHA256(), default_backend())
+
+    return csr
+
+key = generate_private_key('a')
+details = {'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'}
+cert = generate_self_signed_cert(key,'b',details,10)
+csr = create_csr(key,details)
+print(cert)
