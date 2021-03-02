@@ -11,6 +11,7 @@ import threading
 from curses import wrapper
 
 import message_pb2
+import chat
 
 def certificate_window(window, log):
     window_lines, window_cols = window.getmaxyx()
