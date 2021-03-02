@@ -12,7 +12,7 @@ message Contacts {
     int32 port   = 21;
   }
 
-  repeated User  user = 1;
+  repeated User user = 1;
 
 }
 
