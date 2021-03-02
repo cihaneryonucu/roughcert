@@ -85,8 +85,33 @@ def create_csr(private_key, cert_details):
 
     return csr
 
-key = generate_private_key('a')
-details = {'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'}
-cert = generate_self_signed_cert(key,'b',details,10)
-csr = create_csr(key,details)
-print(cert)
+def sign_csr(csr, ca_public_key, ca_private_key):
+    valid_from = datetime.utcnow()
+    valid_until = valid_from + timedelta(days=30)
+
+    builder = (
+        x509.CertificateBuilder()
+        .subject_name(csr.subject)
+        .issuer_name(ca_public_key.subject)
+        .public_key(csr.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(valid_from)
+        .not_valid_after(valid_until)
+    )
+
+    for extension in csr.extensions:
+        builder = builder.add_extension(extension.value, extension.critical)
+
+    public_key = builder.sign(
+        private_key=ca_private_key,
+        algorithm=hashes.SHA256(),
+        backend=default_backend(),
+    )
+    return public_key
+
+# key = generate_private_key('a')
+# details = {'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'}
+# cert = generate_self_signed_cert(key,'b',details,10)
+# csr = create_csr(key,details)
+
+# print(sign_csr(csr,cert,key))
