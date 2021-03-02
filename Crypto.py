@@ -26,3 +26,44 @@ def generate_private_key(filename):
     return key
 
 
+def generate_self_signed_cert(private_key, filename, cert_details, validity):
+    subject = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, cert_details["country"]),# Sweden
+            x509.NameAttribute(
+                NameOID.STATE_OR_PROVINCE_NAME, cert_details["region"] # Skåne
+            ),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, cert_details["city"]), # Lund
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, cert_details["org"]), # Cihan-Marco Co.
+            x509.NameAttribute(NameOID.COMMON_NAME, cert_details["hostname"]), #ce-ms.com
+        ]
+    )
+
+    # Valid for
+    valid_from = datetime.utcnow()
+    valid_to = valid_from + timedelta(days=validity)
+
+    # Build the cert
+    builder = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(subject)
+        .public_key(private_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(valid_from)
+        .not_valid_after(valid_to)
+    )
+
+    # Sign
+    public_key = builder.sign(private_key, hashes.SHA256(), default_backend()
+    )
+
+    # Write
+    with open(filename, "wb") as f:
+        f.write(public_key.public_bytes(serialization.Encoding.PEM))
+
+    return public_key
+
+# key = generate_private_key('a')
+# cert = generate_cert(key,'b',{'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'},10)
+# print(cert)
