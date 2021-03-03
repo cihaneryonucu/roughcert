@@ -15,49 +15,64 @@ class Server(object):
         self._thread = None
 
     def connect(self):
-        context = zmq.Context()
-        self.socket = context.socket(zmq.REP)
-        connect_string = 'tcp://*:{}'.format(self.port)
+        self.socket =  zmq.Context().instance().socket(zmq.PAIR)
+        connect_string = 'tcp://127.0.0.1:{}'.format(self.port)
         self.socket.bind(connect_string)
-        self.poller.register(self.socket, zmq.Poller.POLLIN)
 
     def server_loop(self):
         action = cpb.server_action()
         while True:
-            socks = dict(self.poller.poll())
-            if self.socket in socks and socks[self.socket] == zmq.POLLIN:
-                action.ParseFromString(self.socket.recv())
-                self.parse_command(action)
+            data = self.socket.recv()
+            action.ParseFromString(data)
+            self.parse_command(action)
             if self._stop_event.isSet():
                 break
 
     def run(self):
+        self.connect()
         self._thread = threading.Thread(target=self.server_loop)
         self._thread.start()
 
-    def parse_command(self, action, socket):
+    def unpack_user(self, action):
+
+        personal_data = cpb.Contacts().user.add()
+        for user in action.contact.user:
+            personal_data.username = user.username
+            personal_data.hostname = user.hostname
+            personal_data.isUp = user.isUp
+            personal_data.connectionStart = user.connectionStart
+            personal_data.ipAddr = user.ipAddr
+            personal_data.port = user.port
+        return personal_data
+
+    def parse_command(self, action):
         reply = cpb.server_action()
         if action.action == 'CTS':                   #request all contacts on the server currently
             reply.action = 'ACK'
             for users in self.userList:
-                reply.contact.user.add().user = users
-                socket.send(reply)
+                reply.contact.user.add()
+                reply.contact.user.append(users)
+            self.socket.send(reply.SerializeToString())
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
-            if action.contact.user not in self.userList:
-                self.userList.append(action.contact.user)
+            new_user = self.unpack_user(action)
+            if new_user not in self.userList:
+                self.userList.append(new_user)
             else:
                 pass
             reply.action = 'ACK'
-            socket.send(reply)
-        elif action.action == 'DEL':                  #Remove the contact from the server - throw exception if contact not present
+            self.socket.send(reply.SerializeToString())
+        elif action.action == 'DEL':
+            del_user = self.unpack_user(action)#Remove the contact from the server - throw exception if contact not present
             try:
-                self.userList.remove(action.contact.user)
+                self.userList.remove(del_user)
             except ValueError:
                 print("User not in list")
             reply.action = 'ACK'
-            socket.send(reply)
+            self.socket.send(reply.SerializeToString())
         elif action.action == 'ACK':
             print('Client ACk\'d our reply')
+            reply.action = 'ACK'
+            self.socket.send(reply.SerializeToString())
         else:
             print("Request malformed - nothing to do")
 
