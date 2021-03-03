@@ -1,14 +1,18 @@
 import zmq
 import sys
+import argparse
+import threading
 
 import contacts_pb2 as cpb
 
 class Server(object):
-    def __init__(self, port):
+    def __init__(self, port=10000):
         self.port = port
         self.userList = []
         self.socket = None
         self.poller = zmq.Poller()
+        self._stop_event = threading.Event()
+        self._thread = None
 
     def connect(self):
         context = zmq.Context()
@@ -24,6 +28,12 @@ class Server(object):
             if self.socket in socks and socks[self.socket] == zmq.POLLIN:
                 action.ParseFromString(self.socket.recv())
                 self.parse_command(action)
+            if self._stop_event.isSet():
+                break
+
+    def run(self):
+        self._thread = threading.Thread(target=self.server_loop)
+        self._thread.start()
 
     def parse_command(self, action, socket):
         reply = cpb.server_action()
@@ -50,3 +60,33 @@ class Server(object):
             print('Client ACk\'d our reply')
         else:
             print("Request malformed - nothing to do")
+
+    def stop(self):
+        self.socket.close()
+        self._stop_event.set()
+        self._thread.join()
+
+
+
+
+
+def input_argument():
+    parser = argparse.ArgumentParser(description='Secure Chat backend')
+    parser.add_argument('--port',
+                        type=int,
+                        help='Backend port (def: 10000')
+    return parser.parse_args()
+
+if __name__ == '__main__':
+    print('Secure Chat Backend')
+    try:
+        args = input_argument()
+        if args.port != None:
+            server = Server(port=args.port)
+        else:
+            server = Server()
+        server.run()
+    except KeyboardInterrupt as e:
+        server.stop()
+    except:
+        raise
