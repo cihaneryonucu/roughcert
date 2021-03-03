@@ -5,13 +5,19 @@ import sys
 import time
 import datetime
 import zmq
+from requests import get
+
+from pprint import pprint
+
 
 import threading
 
 from curses import wrapper
 
-import message_pb2
+import message_pb2 as pbm
 import chat
+
+import contacts_pb2 as pbc
 
 def certificate_window(window, log):
     window_lines, window_cols = window.getmaxyx()
@@ -73,9 +79,6 @@ def input_window(window, chat_sender, log):
 
 def input_argument():
     parser = argparse.ArgumentParser(description='Secure Chat client with message self destruct')
-    parser.add_argument('--target',
-                        type=str,
-                        help='Target IP of recipient')
     parser.add_argument('--username',
                         type=str,
                         help='Username of sender')
@@ -155,9 +158,29 @@ if __name__ == "__main__":
     try:
         # check input arguments
         args = input_argument()
-        if args.target is None:
-            sys.exit('Error - Missing TARGET ip')
-        wrapper(main_app)
+        if args.username is None:
+            sys.exit('Error - specify an username')
+
+        print("Bootstrap: create contact entry for this user")
+        request = pbc.server_action()
+        request.action = 'ACK'
+        local_user =  request.contact.user.add()
+        local_user.username = args.username
+        local_user.ipAddr = '{}'.format(get('https://api.ipify.org').text)
+        local_user.port = 10009
+        request.contact.user.append(local_user)
+
+        sock_backend = zmq.Context().instance().socket(zmq.PAIR)
+        sock_backend.connect('tcp://127.0.0.1:10000')
+        sock_backend.send(request.SerializeToString())
+        print('sent')
+        data = sock_backend.recv()
+        resp = pbc.server_action()
+        pprint(resp.ParseFromString(data))
+
+
+
+        #wrapper(main_app)
     except KeyboardInterrupt as e:
         pass
     except:
