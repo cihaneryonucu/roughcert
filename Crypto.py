@@ -85,9 +85,9 @@ def create_csr(private_key, cert_details):
 
     return csr
 
-def sign_csr(csr, ca_public_key, ca_private_key):
+def sign_csr(csr, ca_public_key, ca_private_key, validity): #public key is not key.public_key() but the certificate.
     valid_from = datetime.utcnow()
-    valid_until = valid_from + timedelta(days=30)
+    valid_until = valid_from + timedelta(days=validity)
 
     builder = (
         x509.CertificateBuilder()
@@ -109,9 +109,15 @@ def sign_csr(csr, ca_public_key, ca_private_key):
     )
     return public_key
 
-# key = generate_private_key('a')
+def import_certificate(filename): # Cert containing public key. This is directly importing the 
+    cert = open(filename, "rb")
+    cert = x509.load_pem_x509_certificate(cert.read(), default_backend())
+    return cert
+
+# key = generate_private_key('priv')
 # details = {'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'}
-# cert = generate_self_signed_cert(key,'b',details,10)
+# # cert = generate_self_signed_cert(key,'pub',details,10)
+# cert = import_certificate('pub')
 # csr = create_csr(key,details)
 
 # print(sign_csr(csr,cert,key))
