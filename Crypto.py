@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from datetime import datetime, timedelta
 from cryptography import x509
+from getpass import getpass
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 
@@ -114,10 +115,16 @@ def import_certificate(filename): # Cert containing public key. This is directly
     cert = x509.load_pem_x509_certificate(cert.read(), default_backend())
     return cert
 
+def import_private_key(filename):
+    key_file = open(filename, "rb")
+    private_key = serialization.load_pem_private_key(key_file.read(),b'password',default_backend()) #todo: replace password with getpass().encode("utf-8")
+    return private_key
+
 # key = generate_private_key('priv')
-# details = {'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'}
+details = {'country':'Se','region':'Skane','city':'stockholm','org':'someCo','hostname':'somesite.com'}
 # # cert = generate_self_signed_cert(key,'pub',details,10)
+# key = import_private_key('priv')
 # cert = import_certificate('pub')
 # csr = create_csr(key,details)
 
-# print(sign_csr(csr,cert,key))
+# print(sign_csr(csr,cert,key,10))
