@@ -7,7 +7,8 @@ import datetime
 import zmq
 from requests import get
 
-from pprint import pprint
+from tabulate import tabulate
+
 
 
 import threading
@@ -151,6 +152,60 @@ def main_app(stdscr):
     chat_sender.join()
     logbook.join()
 
+class connection_manager(object):
+    def __init__(self, server, port=10000):
+        self.server = server
+        self.port = port
+        self.sock_backend = None
+        self.contactList = []
+
+    def connect(self):
+        self.sock_backend = zmq.Context().instance().socket(zmq.PAIR)
+        self.sock_backend.connect('tcp://{}:10000'.format(self.server))
+
+    def register_user(self):
+        request = pbc.server_action()
+        request.action = 'REG'
+        local_user = request.contact.user.add()
+        local_user.username = args.username
+        local_user.ipAddr = '{}'.format(get('https://api.ipify.org').text)
+        local_user.port = 10009
+        request.contact.user.append(local_user)
+        self.sock_backend.send(request.SerializeToString())
+        print('Sent REG')
+        data = self.sock_backend.recv()
+        resp = pbc.server_action()
+        resp.ParseFromString(data)
+        if resp.action == 'ACK':
+            print('Success')
+
+    def _unpack_user_list(self, action):
+        userList = []
+        for user in action.contact.user:
+            user_data = pbc.Contacts().user.add()
+            user_data.username = user.username
+            user_data.hostname = user.hostname
+            user_data.isUp = user.isUp
+            user_data.connectionStart = user.connectionStart
+            user_data.ipAddr = user.ipAddr
+            user_data.port = user.port
+            userList.append(user_data)
+        return userList
+
+    def request_users(self):
+        request = pbc.server_action()
+        request.action = 'CTS'
+        self.sock_backend.send(request.SerializeToString())
+        print('Sent CTS')
+        data = self.sock_backend.recv()
+        resp = pbc.server_action()
+        resp.ParseFromString(data)
+        if resp.action == 'ACK':
+            print('Success')
+            self.contactList = self._unpack_user_list(resp)
+
+    def getContactList(self):
+        return self.contactList
 
 
 if __name__ == "__main__":
@@ -162,21 +217,14 @@ if __name__ == "__main__":
             sys.exit('Error - specify an username')
 
         print("Bootstrap: create contact entry for this user")
-        request = pbc.server_action()
-        request.action = 'ACK'
-        local_user =  request.contact.user.add()
-        local_user.username = args.username
-        local_user.ipAddr = '{}'.format(get('https://api.ipify.org').text)
-        local_user.port = 10009
-        request.contact.user.append(local_user)
+        connection_manager = connection_manager(server='127.0.0.1')
+        connection_manager.connect()
+        connection_manager.register_user()
+        connection_manager.request_users()
+        contactList = connection_manager.getContactList()
+        for user in contactList:
+            print("Username: {} \t\t IP: {} \t Port: {}".format(user.username, user.ipAddr, user.port))
 
-        sock_backend = zmq.Context().instance().socket(zmq.PAIR)
-        sock_backend.connect('tcp://127.0.0.1:10000')
-        sock_backend.send(request.SerializeToString())
-        print('sent')
-        data = sock_backend.recv()
-        resp = pbc.server_action()
-        pprint(resp.ParseFromString(data))
 
 
 

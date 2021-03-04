@@ -34,15 +34,13 @@ class Server(object):
         self._thread.start()
 
     def unpack_user(self, action):
-
         personal_data = cpb.Contacts().user.add()
-        for user in action.contact.user:
-            personal_data.username = user.username
-            personal_data.hostname = user.hostname
-            personal_data.isUp = user.isUp
-            personal_data.connectionStart = user.connectionStart
-            personal_data.ipAddr = user.ipAddr
-            personal_data.port = user.port
+        personal_data.username = action.contact.user[0].username
+        personal_data.hostname = action.contact.user[0].hostname
+        personal_data.isUp = action.contact.user[0].isUp
+        personal_data.connectionStart = action.contact.user[0].connectionStart
+        personal_data.ipAddr = action.contact.user[0].ipAddr
+        personal_data.port = action.contact.user[0].port
         return personal_data
 
     def parse_command(self, action):
@@ -62,7 +60,7 @@ class Server(object):
             reply.action = 'ACK'
             self.socket.send(reply.SerializeToString())
         elif action.action == 'DEL':
-            del_user = self.unpack_user(action)#Remove the contact from the server - throw exception if contact not present
+            del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
             try:
                 self.userList.remove(del_user)
             except ValueError:
@@ -80,9 +78,6 @@ class Server(object):
         self.socket.close()
         self._stop_event.set()
         self._thread.join()
-
-
-
 
 
 def input_argument():
