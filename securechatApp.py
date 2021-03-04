@@ -98,16 +98,16 @@ def main_app(stdscr, remotePeer, localUser):
     #Clear screen
     stdscr.clear()
 
-    sock_history = zmq.Context().instance().socket(zmq.REP)
+    sock_history = zmq.Context().instance().socket(zmq.SUB)
     sock_history.bind("inproc://history")
 
-    sock_log = zmq.Context().instance().socket(zmq.REP)
+    sock_log = zmq.Context().instance().socket(zmq.SUB)
     sock_log.bind("inproc://log")
 
-    logging = zmq.Context().instance().socket(zmq.REP)
+    logging = zmq.Context().instance().socket(zmq.PUB)
     logging.connect("inproc://log")
 
-    sock_input = zmq.Context().instance().socket(zmq.REP)
+    sock_input = zmq.Context().instance().socket(zmq.PUB)
     sock_input.connect("inproc://history")
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
@@ -131,6 +131,11 @@ def main_app(stdscr, remotePeer, localUser):
 
     #None arguments are for testing
 
+    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'))
+    chat_tx.run()
+    chat_rx = chat.Receiver(chat_port=localUser.get('port'))
+    chat_rx.run()
+
     chat_history = threading.Thread(target=chat_window, args=(chat_pad, sock_history, logging))
     chat_history.daemon = True
     chat_history.start()
@@ -150,11 +155,6 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.daemon = True
     logbook.start()
     time.sleep(0.05)
-
-    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'), chat_pipe=sock_input)
-    chat_tx.run()
-    chat_rx = chat.Receiver(chat_port=localUser.get('port'), chat_pipe=sock_history)
-    chat_rx.run()
 
     chat_history.join()
     cert_view.join()
