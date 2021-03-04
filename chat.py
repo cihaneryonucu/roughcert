@@ -51,7 +51,8 @@ class Sender(object):
 
 
 class Receiver(object):
-    def __init__(self, chat_port, inbox):
+    def __init__(self,chat_address, chat_port, inbox):
+        self.chat_address = chat_address
         self.chat_port = chat_port
         self.context = zmq.Context()
         self.rx_sock = None
@@ -60,24 +61,13 @@ class Receiver(object):
 
     def connect(self):
         self.rx_sock = zmq.Context().instance().socket(zmq.PAIR)
-        self.rx_sock.bind('tcp://*:{}'.format(self.chat_port))
+        self.rx_sock.bind('tcp://{}:{}'.format(self.chat_address, self.chat_port))
 
-    def push_message_to_history(self, message):
-        self.history.put(message)
-
-    def has_message(self):
-        events = dict(self.poller.poll(3000))
-        return events.get(self.rx_sock) == zmq.POLLIN
-
-    def get_message(self):
-        return self.rx_sock.recv_string()
 
     def receiver_loop(self):
-        self.register_with_poller()
         while True:
-            if self.has_message():
-                message = self.get_message()
-                self.push_message_to_history(message)
+                message = self.rx_sock.recv_string()
+                self.history.put(message)
 
     def inboxQueue(self):
         return self.inboxQueue
