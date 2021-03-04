@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+message Contacts {
+
+  message User {
+    string username = 1;
+    string hostname = 10;
+    string isUp = 11;
+    int32 connectionStart = 12;
+
+    string ipAddr = 20;
+    int32 port   = 21;
+  }
+
+  repeated User user = 1;
+
+}
+
+message server_action {
+  string action = 1;
+  int32 requestTime = 2;
+
+  Contacts contact = 10;
+}

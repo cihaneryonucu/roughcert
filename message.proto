@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+message SecureChat {
+  message Sender {
+    string name = 1;
+    string public_ip = 2;
+    string hostname = 3;
+
+    string pubkey = 10;
+    string pubcert = 11;
+  }
+
+  message Recepient {
+    string name = 1;
+    string public_ip = 2;
+    string hostname = 3;
+  }
+
+  message Message {
+    string message = 1;
+    int64 timestamp_generated = 2;
+    int64 timestamp_expiration = 3;
+
+    string signature = 10;
+  }
+
+  repeated Sender sender = 1;
+  repeated Recepient recepient = 2;
+  repeated Message message = 3;
+
+}
