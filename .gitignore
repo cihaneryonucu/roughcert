@@ -143,5 +143,6 @@ cython_debug/
 .vscode/launch.json
 .vscode/settings.json
 
+testKey.pem
 pub
 priv

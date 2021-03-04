@@ -3,9 +3,12 @@ import Crypto
 
 class CryptoTesting(unittest.TestCase):
 
-    #Test whether the generated key is a private key or not
+    #Test whether the generated key is an RSA private key or not
     def test_is_private_key(self):
         self.assertIsInstance(Crypto.generate_private_key('testKey.pem'),Crypto.rsa.RSAPrivateKey)
+
+    def test_is_imported_key_private_key(self):
+        self.assertIsInstance(Crypto.import_private_key('testKey.pem'),Crypto.rsa.RSAPrivateKey)
 
 if __name__ == '__main__':
     unittest.main()
