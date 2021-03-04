@@ -55,9 +55,9 @@ def chat_window(window, display, log, inbox):
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
     while True:
-        # while inbox.qsize > 0: #check if we have any incoming message
-        #     window.addstr(bottom_line, 1, inbox.get())
-        #     window.scroll(1)
+        while inbox.qsize > 0: #check if we have any incoming message
+            window.addstr(bottom_line, 1, inbox.get())
+            window.scroll(1)
         window.refresh()
         window.addstr(bottom_line, 1, display.recv_string())
         log.send_string('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
@@ -93,6 +93,9 @@ def input_argument():
     parser.add_argument('--port',
                         type=str,
                         help='port of sender')
+    parser.add_argument('--host',
+                        type=str,
+                        help='ip of the host')
     return parser.parse_args()
 
 
@@ -160,7 +163,7 @@ def main_app(stdscr, remotePeer, localUser):
     time.sleep(0.05)
 
     chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'), outbox=outbox)
-    chat_rx = chat.Receiver(chat_port=localUser.get('port'), inbox=inbox)
+    chat_rx = chat.Receiver(chat_address=localUser.get('ipAddr'), chat_port=localUser.get('port'), inbox=inbox)
 
     chat_tx.run()
     chat_rx.run()
@@ -187,7 +190,7 @@ class connection_manager(object):
         request = pbc.server_action()
         request.action = 'REG'
         request.user.username = args.username
-        request.user.ipAddr = '{}'.format(get('https://api.ipify.org').text)
+        request.user.ipAddr = args.host
         request.user.port = int(args.port)
         request.user.isUp = 'OK'
         request.requestTime = int(time.time())
