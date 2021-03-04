@@ -4,6 +4,8 @@ import argparse
 import threading
 
 import contacts_pb2 as cpb
+from protobuf_to_dict import protobuf_to_dict, dict_to_protobuf
+
 
 class Server(object):
     def __init__(self, port=10000):
@@ -15,7 +17,7 @@ class Server(object):
         self._thread = None
 
     def connect(self):
-        self.socket =  zmq.Context().instance().socket(zmq.PAIR)
+        self.socket =  zmq.Context().instance().socket(zmq.REP)
         connect_string = 'tcp://127.0.0.1:{}'.format(self.port)
         self.socket.bind(connect_string)
 
@@ -34,29 +36,24 @@ class Server(object):
         self._thread.start()
 
     def unpack_user(self, action):
-        personal_data = cpb.Contacts().user.add()
-        personal_data.username = action.contact.user[0].username
-        personal_data.hostname = action.contact.user[0].hostname
-        personal_data.isUp = action.contact.user[0].isUp
-        personal_data.connectionStart = action.contact.user[0].connectionStart
-        personal_data.ipAddr = action.contact.user[0].ipAddr
-        personal_data.port = action.contact.user[0].port
-        return personal_data
+        return protobuf_to_dict(action.user)
 
     def parse_command(self, action):
         reply = cpb.server_action()
         if action.action == 'CTS':                   #request all contacts on the server currently
             reply.action = 'ACK'
             for users in self.userList:
-                reply.contact.user.add()
-                reply.contact.user.append(users)
+                reply.contacts.user.add()
+                user = dict_to_protobuf(cpb.User, values=users)
+                reply.contacts.user.append(user)
             self.socket.send(reply.SerializeToString())
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
             new_user = self.unpack_user(action)
             if new_user not in self.userList:
                 self.userList.append(new_user)
             else:
-                pass
+                print('User is present already! ')
+            print(self.userList)
             reply.action = 'ACK'
             self.socket.send(reply.SerializeToString())
         elif action.action == 'DEL':

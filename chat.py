@@ -15,12 +15,11 @@ class Sender(object):
         self.context = zmq.Context()
         self.tx_sock = None
         self.chat_pipe = chat_pipe
+        print(self.chat_address, self.chat_port)
 
     def connect(self):
-        self.tx_sock = zmq.context.socket(zmq.PUB)
-        connect_string = 'tcp://{}:{}'.format(
-            self.chat_address, self.chat_port)
-        self.tx_sock.connect(connect_string)
+        self.tx_sock = zmq.Context().instance().socket(zmq.PAIR)
+        self.tx_sock.connect('tcp://{}:{}'.format(self.chat_address, self.chat_port))
 
     def reconnect_to_server(self):
         self.tx_sock.setsockopt(zmq.LINGER, 0)
@@ -37,12 +36,12 @@ class Sender(object):
         self.tx_sock.recv()
 
     def sender_loop(self):
-        self.connect()
         while True:
             message = self.get_new_message()
             self.send_message(message)
 
     def run(self):
+        self.connect()
         thread = threading.Thread(target=self.sender_loop())
         thread.daemon = True
         thread.start()
@@ -57,9 +56,8 @@ class Receiver(object):
         self.poller = zmq.Poller()
 
     def connect(self):
-        self.rx_sock = zmq.context.socket(zmq.SUB)
-        connect_string = 'tcp://*:{}'.format(self.chat_port)
-        self.rx_sock.connect(connect_string)
+        self.rx_sock = zmq.Context().instance().socket(zmq.PAIR)
+        self.rx_sock.bind('tcp://127.0.0.1:{}'.format(self.chat_port))
 
     def push_message_to_history(self, message):
         self.history.send(message)
@@ -75,7 +73,6 @@ class Receiver(object):
         return self.rx_sock.recv()
 
     def receiver_loop(self):
-        self.connect()
         self.register_with_poller()
         while True:
             if self.has_message():
@@ -83,6 +80,7 @@ class Receiver(object):
                 self.push_message_to_history(message)
 
     def run(self):
+        self.connect()
         thread = threading.Thread(target=self.receiver_loop)
         thread.daemon = True
         thread.start()

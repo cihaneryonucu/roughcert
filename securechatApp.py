@@ -7,8 +7,10 @@ import datetime
 import zmq
 from requests import get
 
+from inquirer import Checkbox, prompt
+from protobuf_to_dict import protobuf_to_dict
 from tabulate import tabulate
-
+from pprint import pprint
 
 
 import threading
@@ -83,27 +85,29 @@ def input_argument():
     parser.add_argument('--username',
                         type=str,
                         help='Username of sender')
+    parser.add_argument('--port',
+                        type=str,
+                        help='port of sender')
     return parser.parse_args()
 
 
-def main_app(stdscr):
-
+def main_app(stdscr, remotePeer, localUser):
 
     ### curses set up
 
     #Clear screen
     stdscr.clear()
 
-    sock_history = zmq.Context().instance().socket(zmq.PAIR)
+    sock_history = zmq.Context().instance().socket(zmq.REP)
     sock_history.bind("inproc://history")
 
-    sock_log = zmq.Context().instance().socket(zmq.PAIR)
+    sock_log = zmq.Context().instance().socket(zmq.REP)
     sock_log.bind("inproc://log")
 
-    logging = zmq.Context().instance().socket(zmq.PAIR)
+    logging = zmq.Context().instance().socket(zmq.REP)
     logging.connect("inproc://log")
 
-    sock_input = zmq.Context().instance().socket(zmq.PAIR)
+    sock_input = zmq.Context().instance().socket(zmq.REP)
     sock_input.connect("inproc://history")
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
@@ -147,30 +151,36 @@ def main_app(stdscr):
     logbook.start()
     time.sleep(0.05)
 
+    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'), chat_pipe=sock_input)
+    chat_tx.run()
+    chat_rx = chat.Receiver(chat_port=localUser.get('port'), chat_pipe=sock_history)
+    chat_rx.run()
+
     chat_history.join()
     cert_view.join()
     chat_sender.join()
     logbook.join()
 
 class connection_manager(object):
-    def __init__(self, server, port=10000):
+    def __init__(self, server, local_user=None, port=10000):
         self.server = server
         self.port = port
         self.sock_backend = None
         self.contactList = []
+        self.local_user = local_user
 
     def connect(self):
-        self.sock_backend = zmq.Context().instance().socket(zmq.PAIR)
+        self.sock_backend = zmq.Context().instance().socket(zmq.REQ)
         self.sock_backend.connect('tcp://{}:10000'.format(self.server))
 
     def register_user(self):
         request = pbc.server_action()
         request.action = 'REG'
-        local_user = request.contact.user.add()
-        local_user.username = args.username
-        local_user.ipAddr = '{}'.format(get('https://api.ipify.org').text)
-        local_user.port = 10009
-        request.contact.user.append(local_user)
+        request.user.username = args.username
+        request.user.ipAddr = '{}'.format(get('https://api.ipify.org').text)
+        request.user.port = int(args.port)
+        request.user.isUp = 'OK'
+        request.requestTime = int(time.time())
         self.sock_backend.send(request.SerializeToString())
         print('Sent REG')
         data = self.sock_backend.recv()
@@ -178,18 +188,15 @@ class connection_manager(object):
         resp.ParseFromString(data)
         if resp.action == 'ACK':
             print('Success')
+            self.local_user = protobuf_to_dict(request.user)
+
 
     def _unpack_user_list(self, action):
         userList = []
-        for user in action.contact.user:
-            user_data = pbc.Contacts().user.add()
-            user_data.username = user.username
-            user_data.hostname = user.hostname
-            user_data.isUp = user.isUp
-            user_data.connectionStart = user.connectionStart
-            user_data.ipAddr = user.ipAddr
-            user_data.port = user.port
-            userList.append(user_data)
+        for user in action.contacts.user:
+            user_data = protobuf_to_dict(user)
+            if user_data != {} and user_data != self.local_user:
+                userList.append(user_data)
         return userList
 
     def request_users(self):
@@ -207,6 +214,9 @@ class connection_manager(object):
     def getContactList(self):
         return self.contactList
 
+    def getLocalUser(self):
+        return self.local_user
+
 
 if __name__ == "__main__":
     print(" ---- Secure Chat ----")
@@ -220,15 +230,39 @@ if __name__ == "__main__":
         connection_manager = connection_manager(server='127.0.0.1')
         connection_manager.connect()
         connection_manager.register_user()
+        check_for_peers = [
+            Checkbox('Check for peers',
+                     message='Do you want to check for peers?',
+                     choices=['yes', 'no'])
+        ]
+
         connection_manager.request_users()
         contactList = connection_manager.getContactList()
-        for user in contactList:
-            print("Username: {} \t\t IP: {} \t Port: {}".format(user.username, user.ipAddr, user.port))
 
+        while not contactList:
+            answer = prompt(check_for_peers)
+            print(answer.get('Check for peers'))
+            if answer.get('Check for peers') == ['yes']:
+                connection_manager.request_users()
+                contactList = connection_manager.getContactList()
+            else:
+                break
 
+        if not contactList:
+            print("I mean... you gotta be talking to someboby right? bye...")
+            sys.exit(0)
 
-
-        #wrapper(main_app)
+        questions = [
+            Checkbox('Peers',
+                     message='Select a peer to connect to',
+                     choices=contactList)
+            ]
+        answer = prompt(questions)
+        print(answer)
+        peer = answer.get('Peers')[0]
+        print(peer.get('ipAddr'), peer.get('port'))
+        input()
+        wrapper(main_app, peer, connection_manager.getLocalUser())
     except KeyboardInterrupt as e:
         pass
     except:
