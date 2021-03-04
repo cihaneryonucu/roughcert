@@ -9,10 +9,8 @@ from requests import get
 
 from inquirer import Checkbox, prompt
 from protobuf_to_dict import protobuf_to_dict
-from tabulate import tabulate
-from pprint import pprint
 
-
+from queue import SimpleQueue
 import threading
 
 from curses import wrapper
@@ -57,15 +55,14 @@ def chat_window(window, display, log, inbox):
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
     while True:
+        # while inbox.qsize > 0: #check if we have any incoming message
+        #     window.addstr(bottom_line, 1, inbox.get())
+        #     window.scroll(1)
+        window.refresh()
         window.addstr(bottom_line, 1, display.recv_string())
         log.send_string('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
         window.scroll(1)
         window.refresh()
-        while inbox.qsize > 0: #check if we have any incoming message
-            window.addstr(bottom_line, 1, inbox.get())
-            window.scroll(1)
-            window.refresh()
-
 
 
 def input_window(window, chat_sender, log, outbox):
@@ -76,6 +73,7 @@ def input_window(window, chat_sender, log, outbox):
     title = " Input "
     window.addstr(0, 0, title)
     window.refresh()
+    curses.curs_set(1)
     while True:
         window.clear()
         window.box()
@@ -105,16 +103,16 @@ def main_app(stdscr, remotePeer, localUser):
     #Clear screen
     stdscr.clear()
 
-    sock_history = zmq.Context().instance().socket(zmq.SUB)
+    sock_history = zmq.Context().instance().socket(zmq.PAIR)
     sock_history.bind("inproc://history")
 
-    sock_log = zmq.Context().instance().socket(zmq.SUB)
+    sock_log = zmq.Context().instance().socket(zmq.PAIR)
     sock_log.bind("inproc://log")
 
-    logging = zmq.Context().instance().socket(zmq.PUB)
+    logging = zmq.Context().instance().socket(zmq.PAIR)
     logging.connect("inproc://log")
 
-    sock_input = zmq.Context().instance().socket(zmq.PUB)
+    sock_input = zmq.Context().instance().socket(zmq.PAIR)
     sock_input.connect("inproc://history")
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
@@ -138,12 +136,10 @@ def main_app(stdscr, remotePeer, localUser):
 
     #None arguments are for testing
 
-    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'))
-    chat_tx.run()
-    chat_rx = chat.Receiver(chat_port=localUser.get('port'))
-    chat_rx.run()
+    inbox = SimpleQueue()
+    outbox = SimpleQueue()
 
-    chat_history = threading.Thread(target=chat_window, args=(chat_pad, sock_history, logging))
+    chat_history = threading.Thread(target=chat_window, args=(chat_pad, sock_history, logging, inbox))
     chat_history.daemon = True
     chat_history.start()
     time.sleep(0.05)
@@ -153,7 +149,7 @@ def main_app(stdscr, remotePeer, localUser):
     cert_view.start()
     time.sleep(0.05)
 
-    chat_sender = threading.Thread(target=input_window, args=(input_pad, sock_input, logging))
+    chat_sender = threading.Thread(target=input_window, args=(input_pad, sock_input, logging, outbox))
     chat_sender.daemon = True
     chat_sender.start()
     time.sleep(0.05)
@@ -162,6 +158,13 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.daemon = True
     logbook.start()
     time.sleep(0.05)
+
+    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'), outbox=outbox)
+    chat_rx = chat.Receiver(chat_port=localUser.get('port'), inbox=inbox)
+
+    chat_tx.run()
+    chat_rx.run()
+
 
     chat_history.join()
     cert_view.join()
