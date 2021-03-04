@@ -30,11 +30,6 @@ class Server(object):
             if self._stop_event.isSet():
                 break
 
-    def run(self):
-        self.connect()
-        self._thread = threading.Thread(target=self.server_loop)
-        self._thread.start()
-
     def unpack_user(self, action):
         return protobuf_to_dict(action.user)
 
@@ -70,6 +65,11 @@ class Server(object):
             self.socket.send(reply.SerializeToString())
         else:
             print("Request malformed - nothing to do")
+
+    def run(self):
+        self.connect()
+        self._thread = threading.Thread(target=self.server_loop)
+        self._thread.start()
 
     def stop(self):
         self.socket.close()

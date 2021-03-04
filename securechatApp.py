@@ -47,7 +47,7 @@ def logbook_window(window, log):
         window.scroll(1)
         window.refresh()
 
-def chat_window(window, display, log):
+def chat_window(window, display, log, inbox):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 2
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
@@ -61,8 +61,14 @@ def chat_window(window, display, log):
         log.send_string('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
         window.scroll(1)
         window.refresh()
+        while inbox.qsize > 0: #check if we have any incoming message
+            window.addstr(bottom_line, 1, inbox.get())
+            window.scroll(1)
+            window.refresh()
 
-def input_window(window, chat_sender, log):
+
+
+def input_window(window, chat_sender, log, outbox):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.clear()
@@ -77,6 +83,7 @@ def input_window(window, chat_sender, log):
         s = window.getstr(1, 1).decode('utf-8')
         if s is not None and s != "":
             chat_sender.send_string(s)
+            outbox.put(s)
             log.send_string('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
         time.sleep(0.5)
 
