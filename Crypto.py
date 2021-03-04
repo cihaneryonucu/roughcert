@@ -122,6 +122,7 @@ def sign_csr(csr, ca_public_key, ca_private_key, validity):  # public key is not
 def import_certificate(filename):  # Cert containing public key. This is directly importing the
     cert = open(filename, "rb")
     cert = x509.load_pem_x509_certificate(cert.read(), default_backend())
+    certFile.close()
     return cert
 
 
