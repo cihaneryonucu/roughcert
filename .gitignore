@@ -140,3 +140,5 @@ cython_debug/
 
 #PyCharm 
 .idea/
+.vscode/launch.json
+.vscode/settings.json
