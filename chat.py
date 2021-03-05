@@ -20,25 +20,15 @@ class Sender(object):
     def connect(self):
         self.tx_sock = zmq.Context().instance().socket(zmq.PAIR)
         self.tx_sock.connect('tcp://{}:{}'.format(self.chat_address, self.chat_port))
-
-    def reconnect_to_server(self):
-        self.tx_sock.setsockopt(zmq.LINGER, 0)
-        self.tx_sock.close()
-        self.connect()
-
-    def get_new_message(self):
-        return self.chat_pipe.get()
-
-    def send_message(self, message):
-        self.tx_sock.send_string(message)
+        
 
     def receive_message(self):
         self.tx_sock.recv()
 
     def sender_loop(self):
         while True:
-            message = self.get_new_message()
-            self.send_message(message)
+            message = self.chat_pipe.get()
+            self.tx_sock.send_string(message, flags=zmq.NOBLOCK)
 
     def outboxQueue(self):
         return self.outboxQueue
@@ -66,8 +56,8 @@ class Receiver(object):
 
     def receiver_loop(self):
         while True:
-                message = self.rx_sock.recv_string()
-                self.history.put(message)
+            message = self.rx_sock.recv_string()
+            self.history.put(message)
 
     def inboxQueue(self):
         return self.inboxQueue

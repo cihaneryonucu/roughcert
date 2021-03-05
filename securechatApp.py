@@ -152,11 +152,12 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.start()
     time.sleep(0.05)
 
-    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'), outbox=outbox)
     chat_rx = chat.Receiver(chat_address=localUser.get('ipAddr'), chat_port=localUser.get('port'), inbox=inbox)
-
-    chat_tx.run()
+    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'), outbox=outbox)
+    
     chat_rx.run()
+    chat_tx.run()
+  
 
 
     chat_history.join()
@@ -165,7 +166,7 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.join()
 
 class connection_manager(object):
-    def __init__(self, server, local_user=None, port=10050):
+    def __init__(self, server, local_user=None, port=10040):
         self.server = server
         self.port = port
         self.sock_backend = None
@@ -174,7 +175,7 @@ class connection_manager(object):
 
     def connect(self):
         self.sock_backend = zmq.Context().instance().socket(zmq.REQ)
-        self.sock_backend.connect('tcp://{}:10000'.format(self.server))
+        self.sock_backend.connect('tcp://{}:{}'.format(self.server, self.port))
 
     def register_user(self):
         request = pbc.server_action()

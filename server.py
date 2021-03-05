@@ -8,7 +8,7 @@ from protobuf_to_dict import protobuf_to_dict, dict_to_protobuf
 
 
 class Server(object):
-    def __init__(self, port=10050):
+    def __init__(self, port=10040):
         self.port = port
         self.userList = []
         self.socket = None
