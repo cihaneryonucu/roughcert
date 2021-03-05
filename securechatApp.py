@@ -18,6 +18,7 @@ import message_pb2 as pbm
 import chat
 import contacts_pb2 as pbc
 
+
 def certificate_window(window, log):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
@@ -93,7 +94,11 @@ def input_argument():
     parser.add_argument('--host',
                         type=str,
                         help='ip of the host')
-    return parser.parse_args()
+    if args.username is None or args.port is None or args.host is None:
+        parser.print_help()
+        sys.exit()
+    else:
+        return parser.parse_args()
 
 
 def main_app(stdscr, remotePeer, localUser):
@@ -159,6 +164,7 @@ def main_app(stdscr, remotePeer, localUser):
     chat_sender.join()
     logbook.join()
 
+
 class connection_manager(object):
     def __init__(self, server, local_user=None, port=10040):
         self.server = server
@@ -174,9 +180,9 @@ class connection_manager(object):
     def register_user(self):
         request = pbc.server_action()
         request.action = 'REG'
-        request.user.username = args.username
-        request.user.ipAddr = args.host
-        request.user.port = int(args.port)
+        request.user.username = self.local_user.get('username')
+        request.user.ipAddr = self.local_user.get('host')
+        request.user.port = int(self.local_user.get('port'))
         request.user.isUp = 'OK'
         request.requestTime = int(time.time())
         self.sock_backend.send(request.SerializeToString())
@@ -221,11 +227,10 @@ if __name__ == "__main__":
     try:
         # check input arguments
         args = input_argument()
-        if args.username is None:
-            sys.exit('Error - specify an username')
+        local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port}
 
         print("Bootstrap: create contact entry for this user")
-        connection_manager = connection_manager(server='130.237.202.92')
+        connection_manager = connection_manager(server='130.237.202.92', local_user=local_user)
         connection_manager.connect()
         connection_manager.register_user()
         check_for_peers = [
@@ -260,7 +265,7 @@ if __name__ == "__main__":
         peer = answer.get('Peers')[0]
         print(peer.get('ipAddr'), peer.get('port'))
         input()
-        wrapper(main_app, peer, connection_manager.getLocalUser())
+        wrapper(main_app, peer, local_user)
     except KeyboardInterrupt as e:
         pass
     except:
