@@ -1,7 +1,7 @@
 import zmq
-import sys
 import argparse
 import threading
+import socket
 
 import contacts_pb2 as cpb
 from protobuf_to_dict import protobuf_to_dict, dict_to_protobuf
@@ -12,13 +12,19 @@ class Server(object):
         self.port = port
         self.userList = []
         self.socket = None
+        self.server_address = None
         self.poller = zmq.Poller()
         self._stop_event = threading.Event()
         self._thread = None
 
     def connect(self):
+        #find the local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        self.server_address = s.getsockname()[0]
+        s.close()
         self.socket =  zmq.Context().instance().socket(zmq.REP)
-        connect_string = 'tcp://130.237.202.92:{}'.format(self.port)
+        connect_string = 'tcp://{}:{}'.format(self.server_address,self.port)
         self.socket.bind(connect_string)
 
     def server_loop(self):
