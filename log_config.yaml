@@ -5,17 +5,17 @@ disable_existing_loggers: False
 # Configuring the default (root) logger is highly recommended
 root:
     level: INFO
-    handlers: [console]
+    handlers: [fileLogging]
 
 # Configuration for logger set with logging.getLogger(NAME)
 loggers:
     Base:
         level: DEBUG
-        handlers: [console]
+        handlers: [fileLogging]
         propagate: no
     Parent:
         level: DEBUG
-        handlers: [console]
+        handlers: [fileLogging]
         propagate: no
 
 formatters:
@@ -23,8 +23,11 @@ formatters:
         format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 handlers:
-    console:
-        class: logging.StreamHandler
+    fileLogging:
+        class: logging.handlers.RotatingFileHandler
         formatter: simple
-        stream: ext://sys.stdout
+        filename: logging.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 20
+        encoding: utf8
 ...

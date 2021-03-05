@@ -1,5 +1,8 @@
-import logging, logging.config
+import logging
+import logging.config
 import yaml
+
+
 class LogMixin(object):
     __loggerConfigured = False
     @property
