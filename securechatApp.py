@@ -27,7 +27,9 @@ def certificate_window(window, log):
     title = " Peer certificate "
     window.addstr(0, int((window_cols  - len(title)) / 2 + 1), title)
     window.refresh()
-
+    while True:
+        log.put('Updated certificate')
+        time.sleep(10)
     #Validate Certificate here
 
 def logbook_window(window, log):
@@ -39,7 +41,7 @@ def logbook_window(window, log):
     title = " Logbook "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
-    while (True and log is not None):
+    while True:
         window.addstr(bottom_line, 1, log.get())
         #window.move(bottom_line, 1)
         window.scroll(1)
@@ -63,7 +65,7 @@ def chat_window(window, log, inbox):
 
 
 
-def input_window(window, chat_sender, log, outbox):
+def input_window(window, log, outbox, inbox):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.clear()
@@ -78,9 +80,9 @@ def input_window(window, chat_sender, log, outbox):
         window.refresh()
         s = window.getstr(1, 1).decode('utf-8')
         if s is not None and s != "":
-            chat_sender.put(s)
+            inbox.put(s)
             outbox.put(s)
-            log.send_string('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
+            log.put('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
         time.sleep(0.5)
 
 def input_argument():
@@ -104,17 +106,6 @@ def main_app(stdscr, remotePeer, localUser):
     #Clear screen
     stdscr.clear()
 
-    sock_history = zmq.Context().instance().socket(zmq.PAIR)
-    sock_history.bind("inproc://history")
-
-    sock_log = zmq.Context().instance().socket(zmq.PAIR)
-    sock_log.bind("inproc://log")
-
-    logging = zmq.Context().instance().socket(zmq.PAIR)
-    logging.connect("inproc://log")
-
-    sock_input = zmq.Context().instance().socket(zmq.PAIR)
-    sock_input.connect("inproc://history")
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -139,23 +130,24 @@ def main_app(stdscr, remotePeer, localUser):
 
     inbox = SimpleQueue()
     outbox = SimpleQueue()
+    log = SimpleQueue()
 
-    chat_history = threading.Thread(target=chat_window, args=(chat_pad, sock_history, logging, inbox))
+    chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox))
     chat_history.daemon = True
     chat_history.start()
     time.sleep(0.05)
 
-    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, logging))
+    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log))
     cert_view.daemon = True
     cert_view.start()
     time.sleep(0.05)
 
-    chat_sender = threading.Thread(target=input_window, args=(input_pad, sock_input, logging, outbox))
+    chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox))
     chat_sender.daemon = True
     chat_sender.start()
     time.sleep(0.05)
 
-    logbook = threading.Thread(target=logbook_window, args=(logbook_pad, sock_log))
+    logbook = threading.Thread(target=logbook_window, args=(logbook_pad, log))
     logbook.daemon = True
     logbook.start()
     time.sleep(0.05)
