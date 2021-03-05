@@ -78,8 +78,10 @@ class Server(object):
     def run(self):
         self.connect()
         self._thread = threading.Thread(target=self.server_loop)
+        self._thread.daemon = True
         self._thread.start()
         self._thread_monitor = threading.Thread(target=self.monitor_loop)
+        self._thread_monitor.daemon = True
         self._thread_monitor.start()
 
     def stop(self):
