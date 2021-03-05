@@ -20,7 +20,7 @@ class Server(object):
     def connect(self):
         #find the local IP
         self.socket =  zmq.Context().instance().socket(zmq.REP)
-        connect_string = 'tcp://*:{}'.format(self.server_address,self.port)
+        connect_string = 'tcp://*:{}'.format(self.port)
         self.socket.bind(connect_string)
 
     def server_loop(self):
