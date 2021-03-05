@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rmessage.proto\"\x88\x03\n\nSecureChat\x12\"\n\x06sender\x18\x01 \x03(\x0b\x32\x12.SecureChat.Sender\x12(\n\trecepient\x18\x02 \x03(\x0b\x32\x15.SecureChat.Recepient\x12$\n\x07message\x18\x03 \x03(\x0b\x32\x13.SecureChat.Message\x1a\\\n\x06Sender\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tpublic_ip\x18\x02 \x01(\t\x12\x10\n\x08hostname\x18\x03 \x01(\t\x12\x0e\n\x06pubkey\x18\n \x01(\t\x12\x0f\n\x07pubcert\x18\x0b \x01(\t\x1a>\n\tRecepient\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tpublic_ip\x18\x02 \x01(\t\x12\x10\n\x08hostname\x18\x03 \x01(\t\x1ah\n\x07Message\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x1b\n\x13timestamp_generated\x18\x02 \x01(\x03\x12\x1c\n\x14timestamp_expiration\x18\x03 \x01(\x03\x12\x11\n\tsignature\x18\n \x01(\tb\x06proto3')
+  serialized_pb=_b('\n\rmessage.proto\"\x88\x03\n\nSecureChat\x12\"\n\x06sender\x18\x01 \x01(\x0b\x32\x12.SecureChat.Sender\x12(\n\trecepient\x18\x02 \x01(\x0b\x32\x15.SecureChat.Recepient\x12$\n\x07message\x18\x03 \x01(\x0b\x32\x13.SecureChat.Message\x1a\\\n\x06Sender\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tpublic_ip\x18\x02 \x01(\t\x12\x10\n\x08hostname\x18\x03 \x01(\t\x12\x0e\n\x06pubkey\x18\n \x01(\t\x12\x0f\n\x07pubcert\x18\x0b \x01(\t\x1a>\n\tRecepient\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tpublic_ip\x18\x02 \x01(\t\x12\x10\n\x08hostname\x18\x03 \x01(\t\x1ah\n\x07Message\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x1b\n\x13timestamp_generated\x18\x02 \x01(\x03\x12\x1c\n\x14timestamp_expiration\x18\x03 \x01(\x03\x12\x11\n\tsignature\x18\n \x01(\tb\x06proto3')
 )
 
 
@@ -187,22 +187,22 @@ _SECURECHAT = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='sender', full_name='SecureChat.sender', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='recepient', full_name='SecureChat.recepient', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='message', full_name='SecureChat.message', index=2,
-      number=3, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),

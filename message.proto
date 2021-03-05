@@ -24,8 +24,8 @@ message SecureChat {
     string signature = 10;
   }
 
-  repeated Sender sender = 1;
-  repeated Recepient recepient = 2;
-  repeated Message message = 3;
+  Sender sender = 1;
+  Recepient recepient = 2;
+  Message message = 3;
 
 }
