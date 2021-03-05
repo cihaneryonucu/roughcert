@@ -50,6 +50,9 @@ class connection_manager(LogMixin):
         if resp.action == 'ACK':
             self.logger.info('Success')
 
+    def update_user_status(self):
+        pass #implement user availability checking based on isUP status
+
 
     def _unpack_user_list(self, action):
         userList = []
