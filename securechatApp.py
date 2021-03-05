@@ -165,7 +165,7 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.join()
 
 class connection_manager(object):
-    def __init__(self, server, local_user=None, port=10000):
+    def __init__(self, server, local_user=None, port=10050):
         self.server = server
         self.port = port
         self.sock_backend = None
@@ -230,7 +230,7 @@ if __name__ == "__main__":
             sys.exit('Error - specify an username')
 
         print("Bootstrap: create contact entry for this user")
-        connection_manager = connection_manager(server='127.0.0.1')
+        connection_manager = connection_manager(server='130.237.202.92')
         connection_manager.connect()
         connection_manager.register_user()
         check_for_peers = [

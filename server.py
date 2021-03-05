@@ -8,7 +8,7 @@ from protobuf_to_dict import protobuf_to_dict, dict_to_protobuf
 
 
 class Server(object):
-    def __init__(self, port=10000):
+    def __init__(self, port=10050):
         self.port = port
         self.userList = []
         self.socket = None
@@ -18,7 +18,7 @@ class Server(object):
 
     def connect(self):
         self.socket =  zmq.Context().instance().socket(zmq.REP)
-        connect_string = 'tcp://127.0.0.1:{}'.format(self.port)
+        connect_string = 'tcp://130.237.202.92:{}'.format(self.port)
         self.socket.bind(connect_string)
 
     def server_loop(self):
