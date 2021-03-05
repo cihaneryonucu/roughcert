@@ -1,6 +1,7 @@
 import zmq
 import argparse
 import threading
+import time
 import socket
 
 import contacts_pb2 as cpb
@@ -16,6 +17,7 @@ class Server(object):
         self.poller = zmq.Poller()
         self._stop_event = threading.Event()
         self._thread = None
+        self._thread_monitor = None
 
     def connect(self):
         #find the local IP
@@ -31,6 +33,11 @@ class Server(object):
             self.parse_command(action)
             if self._stop_event.isSet():
                 break
+
+    def monitor_loop(self):
+        while True:
+            print(self.userList)
+            time.sleep(10)
 
     def unpack_user(self, action):
         return protobuf_to_dict(action.user)
@@ -72,6 +79,8 @@ class Server(object):
         self.connect()
         self._thread = threading.Thread(target=self.server_loop)
         self._thread.start()
+        self._thread_monitor = threading.Thread(target=self.monitor_loop)
+        self._thread_monitor.start()
 
     def stop(self):
         self.socket.close()

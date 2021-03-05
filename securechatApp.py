@@ -179,7 +179,6 @@ class connection_manager(object):
         request.user.username = self.local_user.get('username')
         request.user.ipAddr = self.local_user.get('ipAddr')
         request.user.port = int(self.local_user.get('port'))
-        request.user.isUp = 'OK'
         request.requestTime = int(time.time())
         self.sock_backend.send(request.SerializeToString())
         print('Sent REG')
@@ -189,6 +188,21 @@ class connection_manager(object):
         if resp.action == 'ACK':
             print('Success')
             self.local_user = protobuf_to_dict(request.user)
+
+    def remove_user(self):
+        request = pbc.server_action()
+        request.action = 'DEL'
+        request.user.username = self.local_user.get('username')
+        request.user.ipAddr = self.local_user.get('ipAddr')
+        request.user.port = int(self.local_user.get('port'))
+        request.requestTime = int(time.time())
+        self.sock_backend.send(request.SerializeToString())
+        print('Sent DEL')
+        data = self.sock_backend.recv()
+        resp = pbc.server_action()
+        resp.ParseFromString(data)
+        if resp.action == 'ACK':
+            print('Success')
 
 
     def _unpack_user_list(self, action):
@@ -252,6 +266,7 @@ if __name__ == "__main__":
 
         if not contactList:
             print("I mean... you gotta be talking to someboby right? bye...")
+            connection_manager.remove_user()
             sys.exit(0)
 
         questions = [
@@ -266,6 +281,7 @@ if __name__ == "__main__":
         input()
         wrapper(main_app, peer, local_user)
     except KeyboardInterrupt as e:
+        connection_manager.remove_user()
         pass
     except:
         raise
