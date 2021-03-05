@@ -5,7 +5,6 @@ import sys
 import time
 import datetime
 import zmq
-from requests import get
 
 from inquirer import Checkbox, prompt
 from protobuf_to_dict import protobuf_to_dict
@@ -17,7 +16,6 @@ from curses import wrapper
 
 import message_pb2 as pbm
 import chat
-
 import contacts_pb2 as pbc
 
 def certificate_window(window, log):
@@ -66,7 +64,6 @@ def chat_window(window, log, inbox):
 
 
 def input_window(window, log, outbox, inbox):
-    window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.clear()
     window.box()
@@ -105,7 +102,6 @@ def main_app(stdscr, remotePeer, localUser):
 
     #Clear screen
     stdscr.clear()
-
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -152,13 +148,11 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.start()
     time.sleep(0.05)
 
-    chat_rx = chat.Receiver(chat_address=localUser.get('ipAddr'), chat_port=localUser.get('port'), inbox=inbox)
-    chat_tx = chat.Sender(chat_address=remotePeer.get('ipAddr'), chat_port=remotePeer.get('port'), outbox=outbox)
+    chat_rx = chat.Receiver(local_chat_address=localUser.get('ipAddr'), local_chat_port=localUser.get('port'), inbox=inbox)
+    chat_tx = chat.Sender(remote_peer_address=remotePeer.get('ipAddr'), remote_peer_port=remotePeer.get('port'), outbox=outbox)
     
     chat_rx.run()
     chat_tx.run()
-  
-
 
     chat_history.join()
     cert_view.join()
