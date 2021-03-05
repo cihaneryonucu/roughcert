@@ -4,8 +4,6 @@ import argparse
 import sys
 import time
 import datetime
-
-
 from inquirer import Checkbox, prompt
 
 from queue import SimpleQueue
@@ -15,6 +13,7 @@ from curses import wrapper
 
 import message_pb2 as pbm
 import chat
+from connectionManager import connection_manager
 
 logging.basicConfig(stream=sys.stdout)
 
