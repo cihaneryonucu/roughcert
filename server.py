@@ -106,6 +106,8 @@ if __name__ == '__main__':
         else:
             server = Server()
         server.run()
+        while True:
+            pass
     except KeyboardInterrupt as e:
         server.stop()
     except:
