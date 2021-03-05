@@ -57,11 +57,11 @@ def chat_window(window, log, inbox):
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
     while True:
-        while inbox.qsize > 0: #check if we have any incoming message
+        if inbox.qsize() > 0: #check if we have any incoming message
             window.addstr(bottom_line, 1, inbox.get())
             window.scroll(1)
-        window.refresh()
-        log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
+            window.refresh()
+            log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
 
 
 
