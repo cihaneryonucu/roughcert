@@ -30,7 +30,8 @@ class Server(object):
         while True:
             data = self.socket.recv()
             action.ParseFromString(data)
-            self.parse_command(action)
+            reply = self.parse_command(action)
+            self.socket.send(reply.SerializeToString())
             if self._stop_event.isSet():
                 break
 
@@ -50,7 +51,7 @@ class Server(object):
                 reply.contacts.user.add()
                 user = dict_to_protobuf(cpb.User, values=users)
                 reply.contacts.user.append(user)
-            self.socket.send(reply.SerializeToString())
+            return reply
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
             new_user = self.unpack_user(action)
             if new_user not in self.userList:
@@ -59,7 +60,7 @@ class Server(object):
                 print('User is present already! ')
             print(self.userList)
             reply.action = 'ACK'
-            self.socket.send(reply.SerializeToString())
+            return reply
         elif action.action == 'DEL':
             del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
             try:
@@ -67,11 +68,11 @@ class Server(object):
             except ValueError:
                 print("User not in list")
             reply.action = 'ACK'
-            self.socket.send(reply.SerializeToString())
+            return reply
         elif action.action == 'ACK':
             print('Client ACk\'d our reply')
             reply.action = 'ACK'
-            self.socket.send(reply.SerializeToString())
+            return reply
         else:
             print("Request malformed - nothing to do")
 
@@ -107,7 +108,7 @@ if __name__ == '__main__':
             server = Server()
         server.run()
         while True:
-            pass
+            time.sleep(10)
     except KeyboardInterrupt as e:
         server.stop()
     except:
