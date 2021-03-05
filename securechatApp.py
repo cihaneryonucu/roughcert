@@ -229,7 +229,7 @@ if __name__ == "__main__":
         local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port}
 
         print("Bootstrap: create contact entry for this user")
-        connection_manager = connection_manager(server='130.237.202.92', local_user=local_user)
+        connection_manager = connection_manager(server='130.237.202.97', local_user=local_user)
         connection_manager.connect()
         connection_manager.register_user()
         check_for_peers = [
