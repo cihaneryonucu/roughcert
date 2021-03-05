@@ -1,4 +1,4 @@
-
+import logging
 import curses
 import argparse
 import sys
@@ -19,6 +19,7 @@ import message_pb2 as pbm
 import chat
 import contacts_pb2 as pbc
 
+logging.basicConfig(stream=sys.stdout)
 
 def certificate_window(window, log):
     window_lines, window_cols = window.getmaxyx()

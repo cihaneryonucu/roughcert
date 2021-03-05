@@ -1,0 +1,30 @@
+---
+version: 1
+disable_existing_loggers: False
+
+# Configuring the default (root) logger is highly recommended
+root:
+    level: INFO
+    handlers: [console]
+
+# Configuration for logger set with logging.getLogger(NAME)
+loggers:
+    Base:
+        level: DEBUG
+        handlers: [console]
+        propagate: no
+    Parent:
+        level: DEBUG
+        handlers: [console]
+        propagate: no
+
+formatters:
+    simple:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+handlers:
+    console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+...
