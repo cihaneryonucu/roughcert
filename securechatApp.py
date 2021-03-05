@@ -63,7 +63,7 @@ def chat_window(window, log, inbox, localUser, remotePeer):
 
 
 
-def input_window(window, log, outbox, inbox):
+def input_window(window, log, outbox, inbox, localUser, remotePeer):
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.clear()
     window.box()
@@ -71,14 +71,25 @@ def input_window(window, log, outbox, inbox):
     window.addstr(0, 0, title)
     window.refresh()
     curses.curs_set(1)
+
+    message = pbm.message()
+
     while True:
         window.clear()
         window.box()
         window.refresh()
         s = window.getstr(1, 1).decode('utf-8')
         if s is not None and s != "":
-            inbox.put(s)
-            outbox.put(s)
+            message.sender.name = local_user.username
+            message.sender.public_ip = local_user.ipAddr
+            message.recepient.name = remotePeer.username
+            message.recepient.public_ip = remotePeer.ipAddr
+            message.message.message = s
+            message.message.timestamp_generated = int(datetime.datetime.now().strftime("%s")) * 1000 
+            message.message.timestamp_expiration = int(datetime.datetime.now().strftime("%s")) * 1000 + 60*1000
+            encodedPb = message.SerializeToString()
+            inbox.put(encodedPb)
+            outbox.put(encodedPb)
             log.put('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
         time.sleep(0.5)
 
