@@ -94,11 +94,7 @@ def input_argument():
     parser.add_argument('--host',
                         type=str,
                         help='ip of the host')
-    if args.username is None or args.port is None or args.host is None:
-        parser.print_help()
-        sys.exit()
-    else:
-        return parser.parse_args()
+    return parser.parse_args(), parser
 
 
 def main_app(stdscr, remotePeer, localUser):
@@ -181,7 +177,7 @@ class connection_manager(object):
         request = pbc.server_action()
         request.action = 'REG'
         request.user.username = self.local_user.get('username')
-        request.user.ipAddr = self.local_user.get('host')
+        request.user.ipAddr = self.local_user.get('ipAddr')
         request.user.port = int(self.local_user.get('port'))
         request.user.isUp = 'OK'
         request.requestTime = int(time.time())
@@ -226,7 +222,10 @@ if __name__ == "__main__":
     print(" ---- Secure Chat ----")
     try:
         # check input arguments
-        args = input_argument()
+        args, parser = input_argument()
+        if args.username is None or args.port is None or args.host is None:
+            parser.print_help()
+            sys.exit()
         local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port}
 
         print("Bootstrap: create contact entry for this user")
