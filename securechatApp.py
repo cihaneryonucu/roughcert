@@ -54,10 +54,14 @@ def chat_window(window, log, inbox, localUser, remotePeer):
     title = " History "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
+    message = pbm.SecureChat()
     while True:
         if inbox.qsize() > 0: #check if we have any incoming message
-            window.addstr(bottom_line, 1, inbox.get())
-            window.scroll(1)
+            encoded_message = inbox.get()
+            message.ParseFromString(encoded_message)
+            stringToAppend = "{} - {}:\n\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
+            window.addstr(bottom_line, 1,stringToAppend)
+            window.scroll(2)
             window.refresh()
             log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
 
@@ -72,7 +76,7 @@ def input_window(window, log, outbox, inbox, localUser, remotePeer):
     window.refresh()
     curses.curs_set(1)
 
-    message = pbm.message()
+    message = pbm.SecureChat()
 
     while True:
         window.clear()
@@ -80,10 +84,10 @@ def input_window(window, log, outbox, inbox, localUser, remotePeer):
         window.refresh()
         s = window.getstr(1, 1).decode('utf-8')
         if s is not None and s != "":
-            message.sender.name = local_user.username
-            message.sender.public_ip = local_user.ipAddr
-            message.recepient.name = remotePeer.username
-            message.recepient.public_ip = remotePeer.ipAddr
+            message.sender.name = local_user.get('username')
+            message.sender.public_ip = local_user.get('ipAddr')
+            message.recepient.name = remotePeer.get('username')
+            message.recepient.public_ip = remotePeer.get('ipAddr')
             message.message.message = s
             message.message.timestamp_generated = int(datetime.datetime.now().strftime("%s")) * 1000 
             message.message.timestamp_expiration = int(datetime.datetime.now().strftime("%s")) * 1000 + 60*1000
