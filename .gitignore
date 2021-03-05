@@ -141,5 +141,4 @@ cython_debug/
 #PyCharm 
 .idea/
 .vscode/launch.json
-.gitignore
-
+.vscode/settings.json

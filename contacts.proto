@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-message Contacts {
-
   message User {
     string username = 1;
     string hostname = 10;
@@ -12,6 +10,8 @@ message Contacts {
     int32 port   = 21;
   }
 
+message Contacts {
+
   repeated User user = 1;
 
 }
@@ -19,6 +19,7 @@ message Contacts {
 message server_action {
   string action = 1;
   int32 requestTime = 2;
+  User user = 3;
 
-  Contacts contact = 10;
+  Contacts contacts = 10;
 }

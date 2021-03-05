@@ -19,56 +19,56 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0e\x63ontacts.proto\"\x99\x01\n\x08\x43ontacts\x12\x1c\n\x04user\x18\x01 \x03(\x0b\x32\x0e.Contacts.User\x1ao\n\x04User\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08hostname\x18\n \x01(\t\x12\x0c\n\x04isUp\x18\x0b \x01(\t\x12\x17\n\x0f\x63onnectionStart\x18\x0c \x01(\x05\x12\x0e\n\x06ipAddr\x18\x14 \x01(\t\x12\x0c\n\x04port\x18\x15 \x01(\x05\"P\n\rserver_action\x12\x0e\n\x06\x61\x63tion\x18\x01 \x01(\t\x12\x13\n\x0brequestTime\x18\x02 \x01(\x05\x12\x1a\n\x07\x63ontact\x18\n \x01(\x0b\x32\t.Contactsb\x06proto3')
+  serialized_pb=_b('\n\x0e\x63ontacts.proto\"o\n\x04User\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08hostname\x18\n \x01(\t\x12\x0c\n\x04isUp\x18\x0b \x01(\t\x12\x17\n\x0f\x63onnectionStart\x18\x0c \x01(\x05\x12\x0e\n\x06ipAddr\x18\x14 \x01(\t\x12\x0c\n\x04port\x18\x15 \x01(\x05\"\x1f\n\x08\x43ontacts\x12\x13\n\x04user\x18\x01 \x03(\x0b\x32\x05.User\"f\n\rserver_action\x12\x0e\n\x06\x61\x63tion\x18\x01 \x01(\t\x12\x13\n\x0brequestTime\x18\x02 \x01(\x05\x12\x13\n\x04user\x18\x03 \x01(\x0b\x32\x05.User\x12\x1b\n\x08\x63ontacts\x18\n \x01(\x0b\x32\t.Contactsb\x06proto3')
 )
 
 
 
 
-_CONTACTS_USER = _descriptor.Descriptor(
+_USER = _descriptor.Descriptor(
   name='User',
-  full_name='Contacts.User',
+  full_name='User',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='username', full_name='Contacts.User.username', index=0,
+      name='username', full_name='User.username', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='hostname', full_name='Contacts.User.hostname', index=1,
+      name='hostname', full_name='User.hostname', index=1,
       number=10, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='isUp', full_name='Contacts.User.isUp', index=2,
+      name='isUp', full_name='User.isUp', index=2,
       number=11, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='connectionStart', full_name='Contacts.User.connectionStart', index=3,
+      name='connectionStart', full_name='User.connectionStart', index=3,
       number=12, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ipAddr', full_name='Contacts.User.ipAddr', index=4,
+      name='ipAddr', full_name='User.ipAddr', index=4,
       number=20, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='port', full_name='Contacts.User.port', index=5,
+      name='port', full_name='User.port', index=5,
       number=21, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -86,9 +86,10 @@ _CONTACTS_USER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=61,
-  serialized_end=172,
+  serialized_start=18,
+  serialized_end=129,
 )
+
 
 _CONTACTS = _descriptor.Descriptor(
   name='Contacts',
@@ -107,7 +108,7 @@ _CONTACTS = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[_CONTACTS_USER, ],
+  nested_types=[],
   enum_types=[
   ],
   serialized_options=None,
@@ -116,8 +117,8 @@ _CONTACTS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=19,
-  serialized_end=172,
+  serialized_start=131,
+  serialized_end=162,
 )
 
 
@@ -143,7 +144,14 @@ _SERVER_ACTION = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='contact', full_name='server_action.contact', index=2,
+      name='user', full_name='server_action.user', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='contacts', full_name='server_action.contacts', index=3,
       number=10, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -161,31 +169,31 @@ _SERVER_ACTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=174,
-  serialized_end=254,
+  serialized_start=164,
+  serialized_end=266,
 )
 
-_CONTACTS_USER.containing_type = _CONTACTS
-_CONTACTS.fields_by_name['user'].message_type = _CONTACTS_USER
-_SERVER_ACTION.fields_by_name['contact'].message_type = _CONTACTS
+_CONTACTS.fields_by_name['user'].message_type = _USER
+_SERVER_ACTION.fields_by_name['user'].message_type = _USER
+_SERVER_ACTION.fields_by_name['contacts'].message_type = _CONTACTS
+DESCRIPTOR.message_types_by_name['User'] = _USER
 DESCRIPTOR.message_types_by_name['Contacts'] = _CONTACTS
 DESCRIPTOR.message_types_by_name['server_action'] = _SERVER_ACTION
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Contacts = _reflection.GeneratedProtocolMessageType('Contacts', (_message.Message,), dict(
+User = _reflection.GeneratedProtocolMessageType('User', (_message.Message,), dict(
+  DESCRIPTOR = _USER,
+  __module__ = 'contacts_pb2'
+  # @@protoc_insertion_point(class_scope:User)
+  ))
+_sym_db.RegisterMessage(User)
 
-  User = _reflection.GeneratedProtocolMessageType('User', (_message.Message,), dict(
-    DESCRIPTOR = _CONTACTS_USER,
-    __module__ = 'contacts_pb2'
-    # @@protoc_insertion_point(class_scope:Contacts.User)
-    ))
-  ,
+Contacts = _reflection.GeneratedProtocolMessageType('Contacts', (_message.Message,), dict(
   DESCRIPTOR = _CONTACTS,
   __module__ = 'contacts_pb2'
   # @@protoc_insertion_point(class_scope:Contacts)
   ))
 _sym_db.RegisterMessage(Contacts)
-_sym_db.RegisterMessage(Contacts.User)
 
 server_action = _reflection.GeneratedProtocolMessageType('server_action', (_message.Message,), dict(
   DESCRIPTOR = _SERVER_ACTION,
