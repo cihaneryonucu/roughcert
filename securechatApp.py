@@ -4,6 +4,7 @@ import argparse
 import sys
 import time
 import datetime
+import datetime
 from inquirer import Checkbox, prompt
 
 from queue import SimpleQueue
@@ -17,7 +18,7 @@ from connectionManager import connection_manager
 
 logging.basicConfig(stream=sys.stdout)
 
-def certificate_window(window, log):
+def certificate_window(window, log, remotePeer):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.box()
@@ -44,7 +45,7 @@ def logbook_window(window, log):
         window.scroll(1)
         window.refresh()
 
-def chat_window(window, log, inbox):
+def chat_window(window, log, inbox, localUser, remotePeer):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 2
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
@@ -127,17 +128,17 @@ def main_app(stdscr, remotePeer, localUser):
     outbox = SimpleQueue()
     log = SimpleQueue()
 
-    chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox))
+    chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox, localUser, remotePeer))
     chat_history.daemon = True
     chat_history.start()
     time.sleep(0.05)
 
-    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log))
+    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer))
     cert_view.daemon = True
     cert_view.start()
     time.sleep(0.05)
 
-    chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox))
+    chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox, localUser, remotePeer))
     chat_sender.daemon = True
     chat_sender.start()
     time.sleep(0.05)
