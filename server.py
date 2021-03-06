@@ -23,8 +23,8 @@ class Server(LogMixin):
         self._thread_monitor = None
 
     def connect(self):
-        #find the local IP
-        self.socket =  zmq.Context().instance().socket(zmq.REP)
+        # find the local IP
+        self.socket = zmq.Context().instance().socket(zmq.REP)
         connect_string = 'tcp://*:{}'.format(self.port)
         self.socket.bind(connect_string)
 
@@ -48,14 +48,14 @@ class Server(LogMixin):
 
     def parse_command(self, action):
         reply = cpb.server_action()
-        if action.action == 'CTS':                   #request all contacts on the server currently
+        if action.action == 'CTS':                   # request all contacts on the server currently
             reply.action = 'ACK'
             for users in self.userList:
                 reply.contacts.user.add()
                 user = dict_to_protobuf(cpb.User, values=users)
                 reply.contacts.user.append(user)
             return reply
-        elif action.action == 'REG':                 #Register a new contact on the server - check if already present
+        elif action.action == 'REG':                 # Register a new contact on the server - check if already present
             new_user = self.unpack_user(action)
             if new_user not in self.userList:
                 self.userList.append(new_user)
@@ -65,7 +65,7 @@ class Server(LogMixin):
             reply.action = 'ACK'
             return reply
         elif action.action == 'DEL':
-            del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
+            del_user = self.unpack_user(action)     # Remove the contact from the server - throw exception if contact not present
             try:
                 self.userList.remove(del_user)
             except ValueError:
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     print('Secure Chat Backend')
     try:
         args = input_argument()
-        if args.port != None:
+        if args.port is not None:
             server = Server(port=args.port)
         else:
             server = Server()
@@ -116,4 +116,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt as e:
         server.stop()
     except:
-        raise
+        raise 

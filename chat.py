@@ -19,8 +19,8 @@ class Sender(object):
     def connect(self):
         self.tx_sock = zmq.Context().instance().socket(zmq.PAIR)
         self.tx_sock.connect('tcp://{}:{}'.format(self.remote_peer_address, self.remote_peer_port))
-        
 
+        
     def receive_message(self):
         self.tx_sock.recv()
 
