@@ -2,14 +2,17 @@ import zmq
 import argparse
 import threading
 import time
+import logging
 import socket
 
 import contacts_pb2 as cpb
 from protobuf_to_dict import protobuf_to_dict, dict_to_protobuf
 
+from LogMixin import LogMixin
 
-class Server(object):
+class Server(LogMixin):
     def __init__(self, port=10040):
+
         self.port = port
         self.userList = []
         self.socket = None
@@ -37,7 +40,7 @@ class Server(object):
 
     def monitor_loop(self):
         while True:
-            print(self.userList)
+            self.logger.info(self.userList)
             time.sleep(10)
 
     def unpack_user(self, action):
@@ -57,8 +60,8 @@ class Server(object):
             if new_user not in self.userList:
                 self.userList.append(new_user)
             else:
-                print('User is present already! ')
-            print(self.userList)
+                self.logger.WARNING('User is present already! ')
+            self.logger.info(self.userList)
             reply.action = 'ACK'
             return reply
         elif action.action == 'DEL':
@@ -66,17 +69,18 @@ class Server(object):
             try:
                 self.userList.remove(del_user)
             except ValueError:
-                print("User not in list")
+                self.logger.WARNING("User not in list")
             reply.action = 'ACK'
             return reply
         elif action.action == 'ACK':
-            print('Client ACk\'d our reply')
+            self.logger.info('Client ACk\'d our reply')
             reply.action = 'ACK'
             return reply
         else:
-            print("Request malformed - nothing to do")
+            self.logger.ERROR("Request malformed - nothing to do")
 
     def run(self):
+        self.logger.debug("Bootstrap Server")
         self.connect()
         self._thread = threading.Thread(target=self.server_loop)
         self._thread.daemon = True

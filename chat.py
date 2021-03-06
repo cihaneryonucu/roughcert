@@ -27,7 +27,7 @@ class Sender(object):
     def sender_loop(self):
         while True:
             message = self.outbox.get()
-            self.tx_sock.send_string(message, flags=zmq.NOBLOCK)
+            self.tx_sock.send(message, flags=zmq.NOBLOCK)
 
     def outboxQueue(self):
         return self.outboxQueue
@@ -53,7 +53,7 @@ class Receiver(object):
 
     def receiver_loop(self):
         while True:
-            message = self.rx_sock.recv_string()
+            message = self.rx_sock.recv()
             self.inbox.put(message)
 
     def inboxQueue(self):

@@ -1,14 +1,11 @@
-
+import logging
 import curses
 import argparse
 import sys
 import time
 import datetime
-import zmq
-
-
+import datetime
 from inquirer import Checkbox, prompt
-from protobuf_to_dict import protobuf_to_dict
 
 from queue import SimpleQueue
 import threading
@@ -17,10 +14,11 @@ from curses import wrapper
 
 import message_pb2 as pbm
 import chat
-import contacts_pb2 as pbc
+from connectionManager import connection_manager
 
+logging.basicConfig(stream=sys.stdout)
 
-def certificate_window(window, log):
+def certificate_window(window, log, remotePeer):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.box()
@@ -47,7 +45,7 @@ def logbook_window(window, log):
         window.scroll(1)
         window.refresh()
 
-def chat_window(window, log, inbox):
+def chat_window(window, log, inbox, localUser, remotePeer):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 2
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
@@ -56,16 +54,20 @@ def chat_window(window, log, inbox):
     title = " History "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
+    message = pbm.SecureChat()
     while True:
         if inbox.qsize() > 0: #check if we have any incoming message
-            window.addstr(bottom_line, 1, inbox.get())
-            window.scroll(1)
+            encoded_message = inbox.get()
+            message.ParseFromString(encoded_message)
+            stringToAppend = "{} - {}:\n\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
+            window.addstr(bottom_line, 1,stringToAppend)
+            window.scroll(2)
             window.refresh()
             log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
 
 
 
-def input_window(window, log, outbox, inbox):
+def input_window(window, log, outbox, inbox, localUser, remotePeer):
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.clear()
     window.box()
@@ -73,14 +75,25 @@ def input_window(window, log, outbox, inbox):
     window.addstr(0, 0, title)
     window.refresh()
     curses.curs_set(1)
+
+    message = pbm.SecureChat()
+
     while True:
         window.clear()
         window.box()
         window.refresh()
         s = window.getstr(1, 1).decode('utf-8')
         if s is not None and s != "":
-            inbox.put(s)
-            outbox.put(s)
+            message.sender.name = local_user.get('username')
+            message.sender.public_ip = local_user.get('ipAddr')
+            message.recepient.name = remotePeer.get('username')
+            message.recepient.public_ip = remotePeer.get('ipAddr')
+            message.message.message = s
+            message.message.timestamp_generated = int(datetime.datetime.now().strftime("%s")) * 1000 
+            message.message.timestamp_expiration = int(datetime.datetime.now().strftime("%s")) * 1000 + 60*1000
+            encodedPb = message.SerializeToString()
+            inbox.put(encodedPb)
+            outbox.put(encodedPb)
             log.put('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
         time.sleep(0.5)
 
@@ -130,17 +143,17 @@ def main_app(stdscr, remotePeer, localUser):
     outbox = SimpleQueue()
     log = SimpleQueue()
 
-    chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox))
+    chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox, localUser, remotePeer))
     chat_history.daemon = True
     chat_history.start()
     time.sleep(0.05)
 
-    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log))
+    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer))
     cert_view.daemon = True
     cert_view.start()
     time.sleep(0.05)
 
-    chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox))
+    chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox, localUser, remotePeer))
     chat_sender.daemon = True
     chat_sender.start()
     time.sleep(0.05)
@@ -161,76 +174,6 @@ def main_app(stdscr, remotePeer, localUser):
     chat_sender.join()
     logbook.join()
 
-
-class connection_manager(object):
-    def __init__(self, server, local_user=None, port=10040):
-        self.server = server
-        self.port = port
-        self.sock_backend = None
-        self.contactList = []
-        self.local_user = local_user
-
-    def connect(self):
-        self.sock_backend = zmq.Context().instance().socket(zmq.REQ)
-        self.sock_backend.connect('tcp://{}:{}'.format(self.server, self.port))
-
-    def register_user(self):
-        request = pbc.server_action()
-        request.action = 'REG'
-        request.user.username = self.local_user.get('username')
-        request.user.ipAddr = self.local_user.get('ipAddr')
-        request.user.port = int(self.local_user.get('port'))
-        request.requestTime = int(time.time())
-        self.sock_backend.send(request.SerializeToString())
-        print('Sent REG')
-        data = self.sock_backend.recv()
-        resp = pbc.server_action()
-        resp.ParseFromString(data)
-        if resp.action == 'ACK':
-            print('Success')
-            self.local_user = protobuf_to_dict(request.user)
-
-    def remove_user(self):
-        request = pbc.server_action()
-        request.action = 'DEL'
-        request.user.username = self.local_user.get('username')
-        request.user.ipAddr = self.local_user.get('ipAddr')
-        request.user.port = int(self.local_user.get('port'))
-        request.requestTime = int(time.time())
-        self.sock_backend.send(request.SerializeToString())
-        print('Sent DEL')
-        data = self.sock_backend.recv()
-        resp = pbc.server_action()
-        resp.ParseFromString(data)
-        if resp.action == 'ACK':
-            print('Success')
-
-
-    def _unpack_user_list(self, action):
-        userList = []
-        for user in action.contacts.user:
-            user_data = protobuf_to_dict(user)
-            if user_data != {} and user_data != self.local_user:
-                userList.append(user_data)
-        return userList
-
-    def request_users(self):
-        request = pbc.server_action()
-        request.action = 'CTS'
-        self.sock_backend.send(request.SerializeToString())
-        print('Sent CTS')
-        data = self.sock_backend.recv()
-        resp = pbc.server_action()
-        resp.ParseFromString(data)
-        if resp.action == 'ACK':
-            print('Success')
-            self.contactList = self._unpack_user_list(resp)
-
-    def getContactList(self):
-        return self.contactList
-
-    def getLocalUser(self):
-        return self.local_user
 
 
 if __name__ == "__main__":
