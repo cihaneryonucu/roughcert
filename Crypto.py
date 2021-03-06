@@ -19,9 +19,12 @@ def initiate_key_derivation(target_addr, target_port, client_cert):
 
     # TLS like key derivation: Round 1    
     client_secret = secrets.token_urlsafe(16)
-    tx_sock.send_string('hey' + client_secret, flags=zmq.NOBLOCK)
+    tx_sock.send_string('hey', flags=zmq.NOBLOCK)
+    tx_sock.send_string(client_secret, flags=zmq.NOBLOCK)
 
     # Round 2 listen
+    message = tx_sock.recv()
+    print(message)
     message = tx_sock.recv()
     print(message)
     message = tx_sock.recv()
@@ -36,10 +39,13 @@ def listen_key_derivation(addr, port, server_cert):
     # Round 1 listen
     message = rx_sock.recv()
     print(message)
+    message = rx_sock.recv()
+    print(message)
 
     #Round 2 send cert, response and secret
     server_secret = secrets.token_urlsafe(16)
-    rx_sock.send_string('hey back' + server_secret, flags=zmq.NOBLOCK)
+    rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
+    rx_sock.send_string(server_secret, flags=zmq.NOBLOCK)
     rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
 
 
