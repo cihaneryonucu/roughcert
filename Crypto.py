@@ -1,6 +1,7 @@
 import cryptography
+import cryptography.hazmat.primitives.asymmetric.padding as padding
 import zmq
-import sys
+import sys, copy
 import secrets
 # from pyroughtime import RoughtimeClient, RoughtimeServer
 from cryptography.hazmat.backends import default_backend
@@ -12,7 +13,7 @@ from cryptography.x509 import NameOID
 from cryptography.hazmat.primitives import hashes
 
 
-def initiate_key_derivation(target_addr, target_port, client_cert):
+def initiate_key_derivation(target_addr, target_port, client_cert, CA_pub_key):
     # Connect
     tx_sock = zmq.Context().instance().socket(zmq.PAIR)
     tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
@@ -29,7 +30,15 @@ def initiate_key_derivation(target_addr, target_port, client_cert):
     # print(message)
     server_cert_raw = tx_sock.recv()
     server_cert = x509.load_pem_x509_certificate(server_cert_raw,default_backend())
-    print(server_cert)
+    # print(server_cert.serial_number)
+
+    try:
+        CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+        # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+        print(server_cert)
+    except cryptography.exceptions.InvalidSignature:
+        print("Certificate verification failed, invalid CA")
+        return
 
 
 def listen_key_derivation(addr, port, server_cert):
@@ -48,6 +57,7 @@ def listen_key_derivation(addr, port, server_cert):
     rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
     rx_sock.send_string(server_secret, flags=zmq.NOBLOCK)
     rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
+    # print(server_cert.serial_number)
 
 
 def generate_private_key(filename):
@@ -96,8 +106,7 @@ def generate_self_signed_cert(private_key, filename, cert_details, validity):
     )
 
     # Sign
-    public_key = builder.sign(private_key, hashes.SHA256(), default_backend()
-                              )
+    public_key = builder.sign(private_key, hashes.SHA256(), default_backend())
 
     # Write
     with open(filename, "wb") as f:
@@ -165,16 +174,23 @@ def import_private_key(filename):
                                                      default_backend())  # todo: replace password with getpass().encode("utf-8")
     return private_key
 
-key = generate_private_key('priv')
-details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
-cert = generate_self_signed_cert(key, 'pub', details, 10)
+# key = generate_private_key('priv')
+# details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+# cert = generate_self_signed_cert(key, 'pub', details, 10)
 # key = import_private_key('priv')
-# cert = import_certificate('pub')
+cert = import_certificate('pub')
 # csr = create_csr(key,details)
 
 # print(sign_csr(csr,cert,key,10))
 
 if sys.argv[1] == 's':
     listen_key_derivation(sys.argv[2], sys.argv[3], cert)
+elif sys.argv[1] == 'c':
+    initiate_key_derivation(sys.argv[2], sys.argv[3], '',cert)
 else:
-    initiate_key_derivation(sys.argv[2], sys.argv[3], '')
+    # a = cert.public_bytes(serialization.Encoding.PEM)
+    # b = x509.load_pem_x509_certificate(a,default_backend())
+    # if cert.serial_number == b.serial_number:
+    #     print('tes')
+    # b.public_key().verify(cert.signature,cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+    print(2)
