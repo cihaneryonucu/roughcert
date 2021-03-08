@@ -65,15 +65,18 @@ class Server(LogMixin):
         reply.action = 'ACK'
         return reply
 
+    def list_all_available_users(self, action)
+        for users in self.userList:
+            reply.contacts.user.add()
+            user = dict_to_protobuf(cpb.User, values=users)
+            reply.contacts.user.append(user)
+        reply.action = 'ACK'
+        return reply
+
     def parse_command(self, action):
         reply = cpb.server_action()
         if action.action == 'CTS':                   #request all contacts on the server currently
-            reply.action = 'ACK'
-            for users in self.userList:
-                reply.contacts.user.add()
-                user = dict_to_protobuf(cpb.User, values=users)
-                reply.contacts.user.append(user)
-            return reply
+            reply = list_all_available_users(action=action)
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
             reply = register_user(action=action)
         elif action.action == 'DEL':
