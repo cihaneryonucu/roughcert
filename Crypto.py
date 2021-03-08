@@ -1,7 +1,8 @@
 import cryptography
 import cryptography.hazmat.primitives.asymmetric.padding as padding
 import zmq
-import sys, copy
+import sys
+import copy
 import secrets
 # from pyroughtime import RoughtimeClient, RoughtimeServer
 from cryptography.hazmat.backends import default_backend
@@ -13,7 +14,7 @@ from cryptography.x509 import NameOID
 from cryptography.hazmat.primitives import hashes
 
 
-def initiate_key_derivation(target_addr, target_port, client_cert, CA_pub_key):
+def initiate_key_derivation(target_addr, target_port, client_private_key, client_cert, CA_pub_key):
     # Connect
     tx_sock = zmq.Context().instance().socket(zmq.PAIR)
     tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
@@ -27,21 +28,29 @@ def initiate_key_derivation(target_addr, target_port, client_cert, CA_pub_key):
     server_hey = tx_sock.recv()
     # print(message)
     server_secret = tx_sock.recv()
+    server_secret_signed = tx_sock.recv()
     # print(message)
     server_cert_raw = tx_sock.recv()
-    server_cert = x509.load_pem_x509_certificate(server_cert_raw,default_backend())
+    server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
     # print(server_cert.serial_number)
 
     try:
-        CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+        CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
         # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
-        print(server_cert)
+        print('Server certificate verified.')
     except cryptography.exceptions.InvalidSignature:
         print("Certificate verification failed, invalid CA")
         return
+    try:
+        server_cert.public_key().verify(server_secret_signed, server_secret, padding.PKCS1v15(), hashes.SHA256())
+        print('Server signature verified')
+    except cryptography.exceptions.InvalidSignature:
+        print("Server signature verification failed, invalid key or signature")
+        return
 
 
-def listen_key_derivation(addr, port, server_cert):
+
+def listen_key_derivation(addr, port, server_private_key, server_cert):
     # Connect
     rx_sock = zmq.Context().instance().socket(zmq.PAIR)
     rx_sock.bind('tcp://{}:{}'.format(addr, port))
@@ -53,9 +62,11 @@ def listen_key_derivation(addr, port, server_cert):
     # print(message)
 
     #Round 2 send cert, response and secret
-    server_secret = secrets.token_urlsafe(16)
+    server_secret = secrets.token_bytes(16)
+    signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
     rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
-    rx_sock.send_string(server_secret, flags=zmq.NOBLOCK)
+    rx_sock.send(server_secret, flags=zmq.NOBLOCK)
+    rx_sock.send(signed_server_secret, flags=zmq.NOBLOCK)
     rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
     # print(server_cert.serial_number)
 
@@ -177,16 +188,16 @@ def import_private_key(filename):
 # key = generate_private_key('priv')
 # details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
 # cert = generate_self_signed_cert(key, 'pub', details, 10)
-# key = import_private_key('priv')
+key = import_private_key('priv')
 cert = import_certificate('pub')
 # csr = create_csr(key,details)
 
 # print(sign_csr(csr,cert,key,10))
 
 if sys.argv[1] == 's':
-    listen_key_derivation(sys.argv[2], sys.argv[3], cert)
+    listen_key_derivation(sys.argv[2], sys.argv[3], key, cert)
 elif sys.argv[1] == 'c':
-    initiate_key_derivation(sys.argv[2], sys.argv[3], '',cert)
+    initiate_key_derivation(sys.argv[2], sys.argv[3], key, '', cert)
 else:
     # a = cert.public_bytes(serialization.Encoding.PEM)
     # b = x509.load_pem_x509_certificate(a,default_backend())
