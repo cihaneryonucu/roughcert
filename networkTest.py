@@ -1,7 +1,7 @@
 import unittest
 
 from connectionManager import connection_manager
-
+import server
 
 class TestNetworking(unittest.TestCase):
     def __init__(self):
@@ -9,9 +9,11 @@ class TestNetworking(unittest.TestCase):
         self.contactList = [{"username" : "marco", "ipAddr" : "10.0.0.1", "port" : "10000"}]
         self.local_user = {"username" : "marco", "ipAddr" : "10.0.0.1", "port" : "10000"}
         self. connection_manager = None
+        self.server = server.Server()
+        self.server.run()
 
     def setup_testing_system(self):
-        self.connection_manager = connection_manager("127.0.0.1", local_user=self.local_user)
+        self.connection_manager = connection_manager("127.0.0.1", local_user=self.local_user, port=10040)
 
     def test_register_user(self):
         self.assertEqual(self.connection_manager.register_user(), "ACK", "Server ack'd correctly")
