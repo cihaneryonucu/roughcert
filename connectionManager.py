@@ -73,6 +73,10 @@ class connection_manager(LogMixin):
         self.contactList = self._unpack_user_list(resp)
         return resp
 
+    def ack_server(self)
+        request = build_request(request_type='ACK', local_user=self.local_user)
+        return resp
+
     def getContactList(self):
         return self.contactList
 
