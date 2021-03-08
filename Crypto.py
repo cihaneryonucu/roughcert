@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from datetime import datetime, timedelta
 from cryptography import x509
 from getpass import getpass
-from cryptography.x509.oid import NameOID
+from cryptography.x509 import NameOID
 from cryptography.hazmat.primitives import hashes
 
 
