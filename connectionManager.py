@@ -19,13 +19,19 @@ class connection_manager(LogMixin):
         self.sock_backend = zmq.Context().instance().socket(zmq.REQ)
         self.sock_backend.connect('tcp://{}:{}'.format(self.server, self.port))
 
-    def register_user(self):
+    def build_request(self, request_type, local_user)
         request = pbc.server_action()
-        request.action = 'REG'
+        request.action = request_type
         request.user.username = self.local_user.get('username')
         request.user.ipAddr = self.local_user.get('ipAddr')
         request.user.port = int(self.local_user.get('port'))
         request.requestTime = int(time.time())
+        return request
+
+
+
+    def register_user(self):
+        request = build_request(request_type='REG', local_user=local_user)
         self.sock_backend.send(request.SerializeToString())
         self.logger.info('Sent REG')
         data = self.sock_backend.recv()
@@ -36,12 +42,7 @@ class connection_manager(LogMixin):
             self.local_user = protobuf_to_dict(request.user)
 
     def remove_user(self):
-        request = pbc.server_action()
-        request.action = 'DEL'
-        request.user.username = self.local_user.get('username')
-        request.user.ipAddr = self.local_user.get('ipAddr')
-        request.user.port = int(self.local_user.get('port'))
-        request.requestTime = int(time.time())
+        request = build_request(request_type='DEL', local_user=local_user)
         self.sock_backend.send(request.SerializeToString())
         self.logger.info('Sent DEL')
         data = self.sock_backend.recv()
@@ -63,8 +64,7 @@ class connection_manager(LogMixin):
         return userList
 
     def request_users(self):
-        request = pbc.server_action()
-        request.action = 'CTS'
+        request = build_request(request_type='CTS', local_user=local_user)
         self.sock_backend.send(request.SerializeToString())
         self.logger.info('Sent CTS')
         data = self.sock_backend.recv()
