@@ -37,6 +37,8 @@ RUN apt-get update && apt-get install -y --fix-missing \
 
 COPY server.py ./
 COPY python-requirements.txt ./
+COPY LogMixin.py ./
+COPY contacts_pb2.py ./
 
 RUN  pip install --no-cache-dir -r python-requirements.txt
 
