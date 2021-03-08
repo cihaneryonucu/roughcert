@@ -51,8 +51,10 @@ class Server(LogMixin):
         new_user = self.unpack_user(action)
         if new_user not in self.userList:
             self.userList.append(new_user)
+            reply.result('Added user to contact list')
         else:
             self.logger.WARNING('User is present already! ')
+            reply.result('User is already present in contact contact list')
         self.logger.info(self.userList)
         reply.action = 'ACK'
         return reply
@@ -62,8 +64,10 @@ class Server(LogMixin):
         del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
         try:
             self.userList.remove(del_user)
+            reply.result('Deleted user from contact list')
         except ValueError:
             self.logger.WARNING("User not in list")
+            reply.result('User is not present in contact list')
         reply.action = 'ACK'
         return reply
 
@@ -74,12 +78,20 @@ class Server(LogMixin):
             user = dict_to_protobuf(cpb.User, values=users)
             reply.contacts.user.append(user)
         reply.action = 'ACK'
+        reply.result('Server listing all possible user')
         return reply
 
     def ack_to_request(self):
         reply = cpb.server_action()
         self.logger.info('Client ACk\'d our reply')
         reply.action = 'ACK'
+        return reply
+
+    def n_ack_to_request(self):
+        reply = cpb.server_action()
+        self.logger.ERROR('Cannot ACK request')
+        reply.action = 'NACK'
+        reply.message = 'Malformed request'
         return reply
 
     def parse_command(self, action):
@@ -92,6 +104,7 @@ class Server(LogMixin):
         elif action.action == 'ACK':
             reply = self.ack_to_request()
         else:
+            reply = self.n_ack_to_request()
             self.logger.ERROR("Request malformed - nothing to do")
         return reply
 

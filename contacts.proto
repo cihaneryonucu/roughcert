@@ -21,5 +21,7 @@ message server_action {
   int32 requestTime = 2;
   User user = 3;
 
+  string result = 4;
+
   Contacts contacts = 10;
 }
