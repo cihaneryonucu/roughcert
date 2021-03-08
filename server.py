@@ -95,7 +95,6 @@ class Server(LogMixin):
         return reply
 
     def parse_command(self, action):
-        reply = None
         if action.action == 'CTS':                   #request all contacts on the server currently
             reply = self.list_all_available_users(action)
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
