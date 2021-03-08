@@ -39,7 +39,7 @@ class TestNetworking(unittest.TestCase):
     
     def test_ack_server(cls):
         print("TEST #3: Test ack from server")
-        reply = cls.connection_manager.ack_to_request()
+        reply = cls.connection_manager.ack_server()
         cls.assertEqual(reply.action, 'ACK', 'Server Ackd correctly')
 
 if __name__ == '__main__':
