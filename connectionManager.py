@@ -39,6 +39,7 @@ class connection_manager(LogMixin):
         if resp.action == 'ACK':
             self.logger.info('Success')
             self.local_user = protobuf_to_dict(request.user)
+        return resp.action
 
     def remove_user(self):
         request = build_request(request_type='DEL', local_user=local_user)
