@@ -3,6 +3,8 @@ import unittest
 from connectionManager import connection_manager
 import server
 
+import message_pb2 as pbc
+
 class TestNetworking(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -17,16 +19,19 @@ class TestNetworking(unittest.TestCase):
 
     def test_register_user(cls):
         print('TEST #1: Test user registration process')
-        cls.assertEqual(cls.connection_manager.register_user(), "ACK", "Server ack'd correctly")
+        request = cls.connection_manager.register_user()
+        cls.assertEqual(request, "ACK", "Server ack'd correctly")
 
     def test_request_users(cls):
         print('TEST #2: Test user request process')
-        cls.assertEqual(cls.connection_manager.request_users(), "ACK", "Server ack'd correctly")
+        request = cls.connection_manager.request_users()
+        cls.assertEqual(request.action, "ACK", "Server ack'd correctly")
         cls.assertEqual(cls.connection_manager.contactList, [], "Contact Lists are equal - only one person should be available")
 
     def test_remove_user(cls):
         print('TEST #2: Test user removal process')
-        cls.assertEqual(cls.connection_manager.remove_user(), "ACK", "Server ack'd correctly")
+        request = cls.connection_manager.remove_user()
+        cls.assertEqual(request.action, "ACK", "Server ack'd correctly")
         cls.assertEqual(cls.connection_manager.contactList, [], "Contact Lists are equal - only one person should be available")
 
 
