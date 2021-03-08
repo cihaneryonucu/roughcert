@@ -129,7 +129,7 @@ def input_argument():
     parser = argparse.ArgumentParser(description='Secure Chat backend')
     parser.add_argument('--port',
                         type=int,
-                        help='Backend port (def: 10000')
+                        help='Backend port (def: 10050')
     return parser.parse_args()
 
 if __name__ == '__main__':
