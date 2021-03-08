@@ -90,7 +90,7 @@ class Server(LogMixin):
 
     def n_ack_to_request(self):
         reply = cpb.server_action()
-        self.logger.ERROR('Cannot ACK request')
+        self.logger.error('Cannot ACK request')
         reply.action = 'NACK'
         reply.result = 'Malformed request'
         return reply
@@ -106,7 +106,7 @@ class Server(LogMixin):
             reply = self.ack_to_request()
         else:
             reply = self.n_ack_to_request()
-            self.logger.ERROR("Request malformed - nothing to do")
+            self.logger.error("Request malformed - nothing to do")
         return reply
 
     def run(self):
