@@ -74,6 +74,7 @@ class connection_manager(LogMixin):
         if resp.action == 'ACK':
             self.logger.info('Success')
             self.contactList = self._unpack_user_list(resp)
+        return resp.action
 
     def getContactList(self):
         return self.contactList
