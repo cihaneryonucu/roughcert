@@ -9,10 +9,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.fernet import Fernet
 from datetime import datetime, timedelta
 from cryptography import x509
 from cryptography.x509 import NameOID
 from cryptography.hazmat.primitives import hashes
+import base64
 
 
 def initiate_key_derivation(target_addr, target_port, client_private_key, client_cert, CA_pub_key):
@@ -41,13 +43,13 @@ def initiate_key_derivation(target_addr, target_port, client_private_key, client
         print('Server certificate verified.')
     except cryptography.exceptions.InvalidSignature:
         print("Certificate verification failed, invalid CA")
-        return
+        return None
     try:
         server_cert.public_key().verify(server_secret_signed, server_secret, padding.PKCS1v15(), hashes.SHA256())
         print('Server signature verified')
     except cryptography.exceptions.InvalidSignature:
         print("Server signature verification failed, invalid key or signature")
-        return
+        return None
     print('-----Round 2 ends-----')
     #Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
     print('-----Round 3 starts-----')
@@ -68,16 +70,29 @@ def initiate_key_derivation(target_addr, target_port, client_private_key, client
     digest.update(server_secret)
     digest.update(premaster_secret)
     key = digest.finalize()
-    print(key)
+    # print(key)
 
-    cipher = Cipher(algorithms.AES(key[0:16]), modes.CBC(key[16:32])) #128 bit key other 128 bit used for the iv
+    fernet = Fernet(base64.urlsafe_b64encode(key))
     print('-----Round 4 ends-----')
 
+    #Round 5: Finalize by sending a message
+    print('-----Round 5 starts-----')
+    ct_finalize_server = tx_sock.recv()
+    finalize_server = fernet.decrypt(ct_finalize_server)
     
-    # encryptor = cipher.encryptor()
-    # ct = encryptor.update(b"a secret message") + encryptor.finalize()
-    # decryptor = cipher.decryptor()
-    # decryptor.update(ct) + decryptor.finalize()
+    finalize_client = b"Finalize!"
+    ct_finalize_client = fernet.encrypt(finalize_client)
+    tx_sock.send(ct_finalize_client, flags=zmq.NOBLOCK)
+
+    
+    if finalize_client == finalize_server:
+        print('Finalized')
+        return key
+    else:
+        print('Problem with the derived key')
+        return None
+
+    
 
 
 
@@ -120,13 +135,13 @@ def listen_key_derivation(addr, port, server_private_key, server_cert, CA_pub_ke
         print('Client certificate verified.')
     except cryptography.exceptions.InvalidSignature:
         print("Certificate verification failed, invalid CA or certificate")
-        return
+        return None
     try:
         client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(), hashes.SHA256())
         print('Premaster signature verified.')
     except cryptography.exceptions.InvalidSignature:
         print("Premaster signature verification failed, invalid key or signature")
-        return
+        return None
     print('-----Round 3 ends-----')
     
     #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
@@ -136,10 +151,30 @@ def listen_key_derivation(addr, port, server_private_key, server_cert, CA_pub_ke
     digest.update(server_secret)
     digest.update(premaster_secret)
     key = digest.finalize()
-    print(key)
+    # print(key)
     
-    cipher = Cipher(algorithms.AES(key[0:16]), modes.CBC(key[16:32])) # 128 bit key other 128 bit used for the iv
+    fernet = Fernet(base64.urlsafe_b64encode(key))
     print('-----Round 4 ends-----')
+
+    #Round 5: Finalize by sending a message
+    print('-----Round 5 starts-----')
+    
+    finalize_server = b"Finalize!"
+    ct_finalize_server = fernet.encrypt(finalize_server)
+    rx_sock.send(ct_finalize_server, flags=zmq.NOBLOCK)
+
+    ct_finalize_client = rx_sock.recv()
+    finalize_client = fernet.decrypt(ct_finalize_client)
+
+    if finalize_client == finalize_server:
+        print('Finalized')
+        return key
+    else:
+        print('Problem with the derived key')
+        return None
+
+
+    
 
     
 def generate_private_key(filename):
