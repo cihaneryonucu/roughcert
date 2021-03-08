@@ -8,6 +8,7 @@ import secrets
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from datetime import datetime, timedelta
 from cryptography import x509
 from cryptography.x509 import NameOID
@@ -60,6 +61,24 @@ def initiate_key_derivation(target_addr, target_port, client_private_key, client
     tx_sock.send(client_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
     print('-----Round 3 ends-----')
 
+    #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
+    print('-----Round 4 starts-----')
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(client_secret)
+    digest.update(server_secret)
+    digest.update(premaster_secret)
+    key = digest.finalize()
+    print(key)
+
+    cipher = Cipher(algorithms.AES(key[0:16]), modes.CBC(key[16:32])) #128 bit key other 128 bit used for the iv
+    print('-----Round 4 ends-----')
+
+    
+    # encryptor = cipher.encryptor()
+    # ct = encryptor.update(b"a secret message") + encryptor.finalize()
+    # decryptor = cipher.decryptor()
+    # decryptor.update(ct) + decryptor.finalize()
+
 
 
     
@@ -109,6 +128,18 @@ def listen_key_derivation(addr, port, server_private_key, server_cert, CA_pub_ke
         print("Premaster signature verification failed, invalid key or signature")
         return
     print('-----Round 3 ends-----')
+    
+    #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
+    print('-----Round 4 starts-----')
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(client_secret)
+    digest.update(server_secret)
+    digest.update(premaster_secret)
+    key = digest.finalize()
+    print(key)
+    
+    cipher = Cipher(algorithms.AES(key[0:16]), modes.CBC(key[16:32])) # 128 bit key other 128 bit used for the iv
+    print('-----Round 4 ends-----')
 
     
 def generate_private_key(filename):
