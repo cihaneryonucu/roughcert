@@ -29,7 +29,6 @@ class connection_manager(LogMixin):
         return request
 
 
-
     def register_user(self):
         request = build_request(request_type='REG', local_user=local_user)
         self.sock_backend.send(request.SerializeToString())

@@ -47,10 +47,7 @@ class Server(LogMixin):
         return protobuf_to_dict(action.user)
 
     def register_user(self, action)
-<<<<<<< HEAD
         reply = cpb.server_action()
-=======
->>>>>>> protobuf-messaging
         new_user = self.unpack_user(action)
         if new_user not in self.userList:
             self.userList.append(new_user)
@@ -59,7 +56,6 @@ class Server(LogMixin):
         self.logger.info(self.userList)
         reply.action = 'ACK'
         return reply
-<<<<<<< HEAD
     
     def delete_user(self, action):
         reply = cpb.server_action()
@@ -72,10 +68,6 @@ class Server(LogMixin):
         return reply
 
     def list_all_available_users(self, action)
-=======
-
-    def parse_command(self, action):
->>>>>>> protobuf-messaging
         reply = cpb.server_action()
         for users in self.userList:
             reply.contacts.user.add()
@@ -94,11 +86,7 @@ class Server(LogMixin):
         if action.action == 'CTS':                   #request all contacts on the server currently
             reply = self.list_all_available_users(action)
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
-<<<<<<< HEAD
             reply = self.register_user(action=action)
-=======
-            reply = register_user(action=action)
->>>>>>> protobuf-messaging
         elif action.action == 'DEL':
             reply = self.delete_user(action=action)
         elif action.action == 'ACK':
