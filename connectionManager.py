@@ -19,7 +19,7 @@ class connection_manager(LogMixin):
         self.sock_backend = zmq.Context().instance().socket(zmq.REQ)
         self.sock_backend.connect('tcp://{}:{}'.format(self.server, self.port))
 
-    def build_request(self, request_type, local_user)
+    def build_request(self, request_type, local_user):
         request = pbc.server_action()
         request.action = request_type
         request.user.username = self.local_user.get('username')
