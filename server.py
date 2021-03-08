@@ -46,7 +46,7 @@ class Server(LogMixin):
     def unpack_user(self, action):
         return protobuf_to_dict(action.user)
 
-    def register_user(self, action)
+    def register_user(self, action):
         reply = cpb.server_action()
         new_user = self.unpack_user(action)
         if new_user not in self.userList:
@@ -67,7 +67,7 @@ class Server(LogMixin):
         reply.action = 'ACK'
         return reply
 
-    def list_all_available_users(self, action)
+    def list_all_available_users(self, action):
         reply = cpb.server_action()
         for users in self.userList:
             reply.contacts.user.add()
@@ -76,7 +76,7 @@ class Server(LogMixin):
         reply.action = 'ACK'
         return reply
 
-    def ack_to_request(self)
+    def ack_to_request(self):
         reply = cpb.server_action()
         self.logger.info('Client ACk\'d our reply')
         reply.action = 'ACK'
