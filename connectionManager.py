@@ -50,6 +50,7 @@ class connection_manager(LogMixin):
         resp.ParseFromString(data)
         if resp.action == 'ACK':
             self.logger.info('Success')
+        return resp.action
 
     def update_user_status(self):
         pass #implement user availability checking based on isUP status
