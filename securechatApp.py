@@ -108,7 +108,7 @@ def input_argument():
     parser.add_argument('--host',
                         type=str,
                         help='ip of the host')
-   parser.add_argument('--remote',
+    parser.add_argument('--remote',
                         type=str,
                         help='ip of the server')    
     return parser.parse_args(), parser
