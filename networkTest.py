@@ -36,6 +36,11 @@ class TestNetworking(unittest.TestCase):
         cls.assertEqual(request.action, "ACK", "Server ack'd correctly")
         cls.assertEqual(request.result, "Deleted user from contact list", "Deleted user from contact list")
         cls.assertEqual(cls.connection_manager.contactList, [], "Contact Lists are equal - only one person should be available")
+    
+    def test_ack_server(cls):
+        print("TEST #3: Test ack from server")
+        reply = cls.connection_manager.ack_to_request()
+        cls.assertEqual(reply.action, 'ACK', 'Server Ackd correctly')
 
 if __name__ == '__main__':
     unittest.main()
