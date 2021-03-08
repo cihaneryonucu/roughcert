@@ -47,6 +47,7 @@ class Server(LogMixin):
         return protobuf_to_dict(action.user)
 
     def register_user(self, action)
+        reply = cpb.server_action()
         new_user = self.unpack_user(action)
         if new_user not in self.userList:
             self.userList.append(new_user)
@@ -57,6 +58,7 @@ class Server(LogMixin):
         return reply
     
     def delete_user(self, action):
+        reply = cpb.server_action()
         del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
         try:
             self.userList.remove(del_user)
@@ -66,6 +68,7 @@ class Server(LogMixin):
         return reply
 
     def list_all_available_users(self, action)
+        reply = cpb.server_action()
         for users in self.userList:
             reply.contacts.user.add()
             user = dict_to_protobuf(cpb.User, values=users)
@@ -73,18 +76,21 @@ class Server(LogMixin):
         reply.action = 'ACK'
         return reply
 
-    def parse_command(self, action):
+    def ack_to_request(self)
         reply = cpb.server_action()
+        self.logger.info('Client ACk\'d our reply')
+        reply.action = 'ACK'
+        return reply
+
+    def parse_command(self, action):
         if action.action == 'CTS':                   #request all contacts on the server currently
-            reply = list_all_available_users(action=action)
+            reply = self.list_all_available_users(action)
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
-            reply = register_user(action=action)
+            reply = self.register_user(action=action)
         elif action.action == 'DEL':
-            reply = delete_user(action=action)
+            reply = self.delete_user(action=action)
         elif action.action == 'ACK':
-            self.logger.info('Client ACk\'d our reply')
-            reply.action = 'ACK'
-            return reply
+            reply = self.ack_to_request()
         else:
             self.logger.ERROR("Request malformed - nothing to do")
 
