@@ -46,6 +46,16 @@ class Server(LogMixin):
     def unpack_user(self, action):
         return protobuf_to_dict(action.user)
 
+    def register_user(self, action)
+        new_user = self.unpack_user(action)
+        if new_user not in self.userList:
+            self.userList.append(new_user)
+        else:
+            self.logger.WARNING('User is present already! ')
+        self.logger.info(self.userList)
+        reply.action = 'ACK'
+        return reply
+
     def parse_command(self, action):
         reply = cpb.server_action()
         if action.action == 'CTS':                   #request all contacts on the server currently
@@ -56,14 +66,7 @@ class Server(LogMixin):
                 reply.contacts.user.append(user)
             return reply
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
-            new_user = self.unpack_user(action)
-            if new_user not in self.userList:
-                self.userList.append(new_user)
-            else:
-                self.logger.WARNING('User is present already! ')
-            self.logger.info(self.userList)
-            reply.action = 'ACK'
-            return reply
+            reply = register_user(action=action)
         elif action.action == 'DEL':
             del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
             try:
