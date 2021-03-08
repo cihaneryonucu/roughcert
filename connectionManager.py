@@ -47,8 +47,7 @@ class connection_manager(LogMixin):
         data = self.sock_backend.recv()
         resp = pbc.server_action()
         resp.ParseFromString(data)
-        if resp.action == 'ACK':
-            self.logger.info('Success')
+        self.logger.info(resp.result)
         return resp
 
     def update_user_status(self):
@@ -70,9 +69,8 @@ class connection_manager(LogMixin):
         data = self.sock_backend.recv()
         resp = pbc.server_action()
         resp.ParseFromString(data)
-        if resp.action == 'ACK':
-            self.logger.info('Success')
-            self.contactList = self._unpack_user_list(resp)
+        self.logger.info(resp.result)
+        self.contactList = self._unpack_user_list(resp)
         return resp
 
     def getContactList(self):
