@@ -27,7 +27,7 @@ Install the required pip dependencies:
 
 # Running the server
 The server default port is `tcp://*:10040` It is recommended to run the server at this port.
-There are two viable options: run the server locally, use the included Dockerfile to run the server as a service. 
+There are three viable options: run the server locally, use the included Dockerfile to run the server as a service or use our server provided at `130.237.202.97` (Please be nice, this is for testing only and uptime is not guaranteed!)
 
 ## Run as docker
 To run the server as a docker, first build the provided Dockerfile:
@@ -41,6 +41,22 @@ You will need to provide the secureChatApp.config with the IP of the host runnin
 `docker run -dp 10040:10040 securechat-server`
 
 ## Run the server locally
+
+The server can also run as a normal python application in your local machine. To execute as a local application:
+
+`conda activate roughtime && python server.py`
+
+This will execute the server at `tcp://127.0.0.1:10040`
+
+# Running the chat client
+
+To run the chat client you need to activate the conda environment `roughtime`. Once activate, you can run the client as follows:
+
+`python securechatApp.py --username marco --port XXX --host XXX`
+
+The argument port is the specific TCP port you want to use to listen for incoming messages (any free port is suitable), while host is the IP of your machine. You can chat with any other peer you have a route too. As we only use one TCP port, you could ideally use this over the internet with the necessary port forwarding on your router. In that case, the host would be the public IP of your router. 
+
+The client will first contact the backend server to register the new user and request the list of currently connected users. After the bootstrap phase, the client will allow the user to select a peer to start the conversation. Once a peer is selected, a curses GUI will open where the messages can be entered and visualized. Additional info about the certificate of the remote peer is displayed.
 
 
 
