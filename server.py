@@ -55,6 +55,15 @@ class Server(LogMixin):
         self.logger.info(self.userList)
         reply.action = 'ACK'
         return reply
+    
+    def delete_user(self, action):
+        del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
+        try:
+            self.userList.remove(del_user)
+        except ValueError:
+            self.logger.WARNING("User not in list")
+        reply.action = 'ACK'
+        return reply
 
     def parse_command(self, action):
         reply = cpb.server_action()
@@ -68,13 +77,7 @@ class Server(LogMixin):
         elif action.action == 'REG':                 #Register a new contact on the server - check if already present
             reply = register_user(action=action)
         elif action.action == 'DEL':
-            del_user = self.unpack_user(action)     #Remove the contact from the server - throw exception if contact not present
-            try:
-                self.userList.remove(del_user)
-            except ValueError:
-                self.logger.WARNING("User not in list")
-            reply.action = 'ACK'
-            return reply
+            reply = delete_user(action=action)
         elif action.action == 'ACK':
             self.logger.info('Client ACk\'d our reply')
             reply.action = 'ACK'
