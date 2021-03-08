@@ -56,6 +56,21 @@ class TestNetworking(unittest.TestCase):
         cls.assertEqual(cls.server.userList, userList, 'Server does not append the same user again')
         cls.assertEqual(resp.result, 'User is already present in contact contact list', 'User is already present in contact contact list')
 
+    def test_remove_user(cls):
+        print('TEST #6: remove user to server')
+        second_user = {'username': 'frank', 'ipAddr': '10.0.0.2', 'port': 10002}
+        request = cpb.server_action()
+        request.action = 'DEL'
+        request.user.username = second_user.get('username')
+        request.user.ipAddr = second_user.get('ipAddr')
+        request.user.port = int(second_user.get('port'))
+        resp = cls.server.parse_command(request)
+        cls.assertEqual(cls.server.userList, [], 'Server remove one user')
+        cls.assertEqual(resp.result, 'Deleted user from contact list')
+        resp = cls.server.parse_command(request)
+        cls.assertEqual(cls.server.userList, userList, 'Server does not attempt remove non existing users')
+        cls.assertEqual(resp.result, 'User is not present in contact list', 'Cannot remove non existing users')
+
 
 if __name__ == '__main__':
     unittest.main()
