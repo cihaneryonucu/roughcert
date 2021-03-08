@@ -75,6 +75,10 @@ class connection_manager(LogMixin):
 
     def ack_server(self):
         request = self.build_request(request_type='ACK', local_user=self.local_user)
+        self.sock_backend.send(request.SerializeToString())
+        data = self.sock_backend.recv() 
+        resp = pbc.server_action()
+        resp.ParseFromString(data)
         return resp
 
     def getContactList(self):
