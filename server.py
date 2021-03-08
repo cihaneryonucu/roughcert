@@ -93,6 +93,7 @@ class Server(LogMixin):
             reply = self.ack_to_request()
         else:
             self.logger.ERROR("Request malformed - nothing to do")
+        return reply
 
     def run(self):
         self.logger.debug("Bootstrap Server")
