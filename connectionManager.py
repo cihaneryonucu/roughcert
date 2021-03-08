@@ -38,7 +38,7 @@ class connection_manager(LogMixin):
         if resp.action == 'ACK':
             self.logger.info('Success')
             self.local_user = protobuf_to_dict(request.user)
-        return resp.action
+        return resp
 
     def remove_user(self):
         request = self.build_request(request_type='DEL', local_user=self.local_user)
@@ -49,7 +49,7 @@ class connection_manager(LogMixin):
         resp.ParseFromString(data)
         if resp.action == 'ACK':
             self.logger.info('Success')
-        return resp.action
+        return resp
 
     def update_user_status(self):
         pass #implement user availability checking based on isUP status
@@ -73,7 +73,7 @@ class connection_manager(LogMixin):
         if resp.action == 'ACK':
             self.logger.info('Success')
             self.contactList = self._unpack_user_list(resp)
-        return resp.action
+        return resp
 
     def getContactList(self):
         return self.contactList
