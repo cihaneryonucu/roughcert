@@ -20,11 +20,11 @@ class TestNetworking(unittest.TestCase):
 
     def test_request_users(self):
         self.assertEqual(self.connection_manager.request_users(), "ACK", "Server ack'd correctly")
-        self.assertEqual(self.connection_manager.contactList, self.contactList, "Contact Lists are equal - only one person should be avaialble")
+        self.assertEqual(self.connection_manager.contactList, self.contactList, "Contact Lists are equal - only one person should be available")
 
     def test_remove_user(self):
         self.assertEqual(self.connection_manager.remove_user(), "ACK", "Server ack'd correctly")
-        self.assertEqual(self.connection_manager.contactList, [], "Contact Lists are equal - only one person should be avaialble")
+        self.assertEqual(self.connection_manager.contactList, [], "Contact Lists are equal - only one person should be available")
 
 
 if __name__ == '__main__':
