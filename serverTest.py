@@ -68,7 +68,7 @@ class TestNetworking(unittest.TestCase):
         cls.assertEqual(cls.server.userList, [], 'Server remove one user')
         cls.assertEqual(resp.result, 'Deleted user from contact list')
         resp = cls.server.parse_command(request)
-        cls.assertEqual(cls.server.userList, userList, 'Server does not attempt remove non existing users')
+        cls.assertEqual(cls.server.userList, [], 'Server does not attempt remove non existing users')
         cls.assertEqual(resp.result, 'User is not present in contact list', 'Cannot remove non existing users')
 
 
