@@ -30,7 +30,7 @@ class connection_manager(LogMixin):
 
 
     def register_user(self):
-        request = build_request(request_type='REG', local_user=local_user)
+        request = self.build_request(request_type='REG', local_user=self.local_user)
         self.sock_backend.send(request.SerializeToString())
         self.logger.info('Sent REG')
         data = self.sock_backend.recv()
@@ -42,7 +42,7 @@ class connection_manager(LogMixin):
         return resp.action
 
     def remove_user(self):
-        request = build_request(request_type='DEL', local_user=local_user)
+        request = self.build_request(request_type='DEL', local_user=self.local_user)
         self.sock_backend.send(request.SerializeToString())
         self.logger.info('Sent DEL')
         data = self.sock_backend.recv()
@@ -65,7 +65,7 @@ class connection_manager(LogMixin):
         return userList
 
     def request_users(self):
-        request = build_request(request_type='CTS', local_user=local_user)
+        request = self.build_request(request_type='CTS', local_user=self.local_user)
         self.sock_backend.send(request.SerializeToString())
         self.logger.info('Sent CTS')
         data = self.sock_backend.recv()
