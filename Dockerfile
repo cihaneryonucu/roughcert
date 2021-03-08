@@ -39,6 +39,8 @@ COPY server.py ./
 COPY python-requirements.txt ./
 COPY LogMixin.py ./
 COPY contacts_pb2.py ./
+COPY log_config.yml ./
+
 
 RUN  pip install --no-cache-dir -r python-requirements.txt
 
