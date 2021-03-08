@@ -39,6 +39,22 @@ class TestNetworking(unittest.TestCase):
         resp = cls.server.parse_command(request)
         cls.assertEqual(resp.action, 'ACK', 'Server Nack is correct')
 
+    def test_add_user(cls):
+        print('TEST #5: add user to server')
+        second_user = {'username': 'frank', 'ipAddr': '10.0.0.2', 'port': 10002}
+        userList = []
+        userList.append(second_user)
+        request = cpb.server_action()
+        request.action = 'REG'
+        request.user.username = second_user.get('username')
+        request.user.ipAddr = second_user.get('ipAddr')
+        request.user.port = int(second_user.get('port'))
+        resp = cls.server.parse_command(request)
+        cls.assertEqual(cls.server.userList, userList, 'Server Appends one user')
+        cls.assertEqual(resp.result, 'Added user to contact list', 'Added user to contact list')
+        resp = cls.server.parse_command(request)
+        cls.assertEqual(cls.server.userList, userList, 'Server does not append the same user again')
+        cls.assertEqual(resp.result, 'User is already present in contact contact list', 'User is already present in contact contact list')
 
 
 if __name__ == '__main__':
