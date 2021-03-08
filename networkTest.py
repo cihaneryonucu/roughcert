@@ -20,20 +20,22 @@ class TestNetworking(unittest.TestCase):
     def test_register_user(cls):
         print('TEST #1: Test user registration process')
         request = cls.connection_manager.register_user()
-        cls.assertEqual(request, "ACK", "Server ack'd correctly")
+        cls.assertEqual(request.action, "ACK", "Server ack'd correctly")
+        cls.assertEqual(request.result, "Added user to contact list", "Added user from contact list")
 
     def test_request_users(cls):
         print('TEST #2: Test user request process')
         request = cls.connection_manager.request_users()
         cls.assertEqual(request.action, "ACK", "Server ack'd correctly")
+        cls.assertEqual(request.result, 'Server listing all possible user', 'Server listing all possible user')
         cls.assertEqual(cls.connection_manager.contactList, [], "Contact Lists are equal - only one person should be available")
 
     def test_remove_user(cls):
-        print('TEST #2: Test user removal process')
+        print('TEST #3: Test user removal process')
         request = cls.connection_manager.remove_user()
         cls.assertEqual(request.action, "ACK", "Server ack'd correctly")
+        cls.assertEqual(request.result, "Deleted user from contact list", "Deleted user from contact list")
         cls.assertEqual(cls.connection_manager.contactList, [], "Contact Lists are equal - only one person should be available")
-
 
 if __name__ == '__main__':
     unittest.main()
