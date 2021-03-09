@@ -298,7 +298,13 @@ class Crypto_Primitives:
         self.private_key = private_key
         self.cert = cert
         self.CA_pub_key = CA_pub_key
-        self.session_key = {}  # They should be filled with username as key and symmetric key as value.
+        self.session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as value.
+
+    def establish_session_key(self, isClient, target_addr, target_port):
+        if isClient:
+            self.session_key = initiate_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
+        else:
+            self.session_key = listen_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
         
 
 # key = generate_private_key('priv')
