@@ -297,17 +297,17 @@ class Crypto_Primitives:
     def __init__(self, adress, port, private_key, cert, CA_pub_key):
         self.adress = adress
         self.port = port
-        self.private_key = private_key
+        self.__private_key = private_key
         self.cert = cert
         self.CA_pub_key = CA_pub_key
         self.session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as value.
         self.fernet = None
 
-    def establish_session_key(self, isClient, target_addr, target_port):
+    def establish_session_key(self, isClient, target_addr=None, target_port=None):  # if client, you should specify the address and port
         if isClient:
-            key = initiate_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
+            key = initiate_key_derivation(target_addr, target_port, self.__private_key, self.cert, self.CA_pub_key)
         else:
-            key = listen_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
+            key = listen_key_derivation(self.adress, self.port, self.__private_key, self.cert, self.CA_pub_key)
             
         self.fernet = Fernet(key)
         self.session_key = key
@@ -320,23 +320,31 @@ class Crypto_Primitives:
         return self.fernet.decrypt(ciphertext)
         
 
-# key = generate_private_key('priv')
-# details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
-# cert = generate_self_signed_cert(key, 'pub', details, 10)
-key = import_private_key('priv')
-cert = import_certificate('pub')
+# key = generate_private_key('CA_Private_key.pem')
+# details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'CE-MS co', 'hostname': 'somesite.com'}
+# cert = generate_self_signed_cert(key, 'CA_cert.pem', details, 30)
+# # key = import_private_key('priv')
+# # cert = import_certificate('pub')
 # csr = create_csr(key,details)
 
 # print(sign_csr(csr,cert,key,10))
 
-if sys.argv[1] == 's':
-    listen_key_derivation(sys.argv[2], sys.argv[3], key, cert, cert)
-elif sys.argv[1] == 'c':
-    initiate_key_derivation(sys.argv[2], sys.argv[3], key, cert, cert)
-else:
-    # a = cert.public_bytes(serialization.Encoding.PEM)
-    # b = x509.load_pem_x509_certificate(a,default_backend())
-    # if cert.serial_number == b.serial_number:
-    #     print('tes')
-    # b.public_key().verify(cert.signature,cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
-    print(2)
+# if sys.argv[1] == 's':
+#     crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, cert)
+#     crypto.establish_session_key(False)
+#     c = crypto.encrypt(b'Folsom')
+#     print(c)
+#     print(crypto.decrypt(c))
+# elif sys.argv[1] == 'c':
+#     crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, cert)
+#     crypto.establish_session_key(True, sys.argv[2], sys.argv[3])
+#     c = crypto.encrypt(b'Folsom')
+#     print(c)
+#     print(crypto.decrypt(c))
+# else:
+#     # a = cert.public_bytes(serialization.Encoding.PEM)
+#     # b = x509.load_pem_x509_certificate(a,default_backend())
+#     # if cert.serial_number == b.serial_number:
+#     #     print('tes')
+#     # b.public_key().verify(cert.signature,cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+#     print('Nope')
