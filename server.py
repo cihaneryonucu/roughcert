@@ -23,8 +23,8 @@ class Server(LogMixin):
         self._thread_monitor = None
 
     def connect(self):
-        #find the local IP
-        self.socket =  zmq.Context().instance().socket(zmq.REP)
+        # find the local IP
+        self.socket = zmq.Context().instance().socket(zmq.REP)
         connect_string = 'tcp://*:{}'.format(self.port)
         self.socket.bind(connect_string)
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     print('Secure Chat Backend')
     try:
         args = input_argument()
-        if args.port != None:
+        if args.port is not None:
             server = Server(port=args.port)
         else:
             server = Server()
@@ -146,4 +146,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt as e:
         server.stop()
     except:
-        raise
+        raise 

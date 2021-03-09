@@ -4,7 +4,6 @@ import argparse
 import sys
 import time
 import datetime
-import datetime
 from inquirer import Checkbox, prompt
 import textwrap
 
@@ -38,25 +37,25 @@ def certificate_window(window, log, remotePeer):
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.box()
     title = " Peer certificate "
-    window.addstr(0, int((window_cols  - len(title)) / 2 + 1), title)
+    window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
     while True:
         log.put('Updated certificate')
         time.sleep(10)
-    #Validate Certificate here
+    # Validate Certificate here
 
 def logbook_window(window, log):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 1
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.scrollok(1)
-    #window.box()
+    # window.box()
     title = " Logbook "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
     while True:
         window.addstr(bottom_line, 1, log.get())
-        #window.move(bottom_line, 1)
+        # window.move(bottom_line, 1)
         window.scroll(1)
         window.refresh()
 
@@ -73,7 +72,7 @@ def chat_window(window, log, inbox, localUser, remotePeer):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 2
     window.scrollok(1)
-    #window.box()
+    # window.box()
     title = " History "
     window.addstr(2, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
@@ -86,6 +85,7 @@ def chat_window(window, log, inbox, localUser, remotePeer):
 
 
     while True:
+
         if sanitized:
             for index in indexes:
                 del message_buffer[index]
@@ -149,7 +149,7 @@ def input_window(window, log, outbox, inbox, localUser, remotePeer):
             message.recepient.public_ip = remotePeer.get('ipAddr')
             message.message.message = s
             message.message.timestamp_generated = int(datetime.datetime.now().strftime("%s")) * 1000 
-            message.message.timestamp_expiration = int(datetime.datetime.now().strftime("%s")) * 1000 + 60*1000
+            message.message.timestamp_expiration = int(datetime.datetime.now().strftime("%s")) * 1000 + 60 * 1000
             encodedPb = message.SerializeToString()
             inbox.put(encodedPb)
             outbox.put(encodedPb)
@@ -227,7 +227,7 @@ def main_app(stdscr, remotePeer, localUser):
 
     chat_rx = chat.Receiver(local_chat_address=localUser.get('ipAddr'), local_chat_port=localUser.get('port'), inbox=inbox)
     chat_tx = chat.Sender(remote_peer_address=remotePeer.get('ipAddr'), remote_peer_port=remotePeer.get('port'), outbox=outbox)
-    
+     
     chat_rx.run()
     chat_tx.run()
 
@@ -249,6 +249,7 @@ if __name__ == "__main__":
         if args.username is None or args.port is None or args.host is None:
             parser.print_help()
             sys.exit()
+
         local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port}
         if args.remote is None or args.remote == '':
             remote = '130.237.202.97'
@@ -285,7 +286,7 @@ if __name__ == "__main__":
             Checkbox('Peers',
                      message='Select a peer to connect to',
                      choices=contactList)
-            ]
+        ]
         answer = prompt(questions)
         peer = answer.get('Peers')[0]
         wrapper(main_app, peer, local_user)
