@@ -292,6 +292,10 @@ def import_private_key(filename):
                                                      default_backend())  # todo: replace password with getpass().encode("utf-8")
     return private_key
 
+def export_cert(filename, cert):
+    with open(filename, "wb") as f:
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
+
 
 class Crypto_Primitives:
     def __init__(self, adress, port, private_key, cert, CA_pub_key):
@@ -320,14 +324,16 @@ class Crypto_Primitives:
         return self.fernet.decrypt(ciphertext)
         
 
-# key = generate_private_key('CA_Private_key.pem')
-# details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'CE-MS co', 'hostname': 'somesite.com'}
-# cert = generate_self_signed_cert(key, 'CA_cert.pem', details, 30)
-# # key = import_private_key('priv')
-# # cert = import_certificate('pub')
-# csr = create_csr(key,details)
+# key = generate_private_key('client1_private_key.pem')
+# details = {'country': 'RM', 'region': 'Asia Minor', 'city': 'Ephesus', 'org': 'Civis romanus sum', 'hostname': 'rome.com'}
+# # cert = generate_self_signed_cert(key, 'client1_cert.pem', details, 30)
+# key = import_private_key('CA_Private_key.pem')
+# cert = import_certificate('CA_cert.pem')
+# csr = create_csr(key, details)
 
-# print(sign_csr(csr,cert,key,10))
+# client_cert = sign_csr(csr, cert, key, 10)
+# print(client_cert)
+# export_cert('client1_cert.pem', cert)
 
 # if sys.argv[1] == 's':
 #     crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, cert)
