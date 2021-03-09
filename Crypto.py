@@ -138,9 +138,8 @@ def export_cert(filename, cert):
 
 
 class Crypto_Primitives(LogMixin):
-    def __init__(self, adress, port, private_key, cert, CA_pub_key):
-        self.adress = adress
-        self.port = port
+    def __init__(self, socket, private_key, cert, CA_pub_key):
+        self.socket = socket
         self.__private_key = private_key
         self.cert = cert
         self.CA_pub_key = CA_pub_key
@@ -149,9 +148,9 @@ class Crypto_Primitives(LogMixin):
 
     def establish_session_key(self, isClient, target_addr=None, target_port=None):  # if client, you should specify the address and port
         if isClient:
-            key = self.__initiate_key_derivation(target_addr, target_port, self.__private_key, self.cert, self.CA_pub_key)
+            key = self.__initiate_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
         else:
-            key = self.__listen_key_derivation(self.adress, self.port, self.__private_key, self.cert, self.CA_pub_key)
+            key = self.__listen_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
             
         self.fernet = Fernet(key)
         self.session_key = key
@@ -163,11 +162,11 @@ class Crypto_Primitives(LogMixin):
     def decrypt(self, ciphertext):
         return self.fernet.decrypt(ciphertext)
 
-    def __initiate_key_derivation(self, target_addr, target_port, client_private_key, client_cert, CA_pub_key):
+    def __initiate_key_derivation(self, client_private_key, client_cert, CA_pub_key):
         # Connect
-        tx_sock = zmq.Context().instance().socket(zmq.PAIR)
-        tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
-
+        # tx_sock = zmq.Context().instance().socket(zmq.PAIR)
+        # tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
+        tx_sock = self.socket
         # TLS like key derivation: Round 1
         self.logger.info('-----Round 1 starts-----') 
         client_secret = secrets.token_bytes(16)
@@ -240,10 +239,12 @@ class Crypto_Primitives(LogMixin):
             return None
 
     
-    def __listen_key_derivation(self, addr, port, server_private_key, server_cert, CA_pub_key):
+    def __listen_key_derivation(self, server_private_key, server_cert, CA_pub_key):
         # Connect
-        rx_sock = zmq.Context().instance().socket(zmq.PAIR)
-        rx_sock.bind('tcp://{}:{}'.format(addr, port))
+        # rx_sock = zmq.Context().instance().socket(zmq.PAIR)
+        # rx_sock.bind('tcp://{}:{}'.format(addr, port))
+
+        rx_sock = self.socket
 
         # Round 1 listen
         self.logger.info('-----Round 1 starts-----')
