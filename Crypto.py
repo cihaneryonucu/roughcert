@@ -8,7 +8,6 @@ import secrets
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.fernet import Fernet
 from datetime import datetime, timedelta
 from cryptography import x509
@@ -290,6 +289,17 @@ def import_private_key(filename):
     private_key = serialization.load_pem_private_key(key_file.read(), b'password',
                                                      default_backend())  # todo: replace password with getpass().encode("utf-8")
     return private_key
+
+
+class Crypto_Primitives:
+    def __init__(self, adress, port, private_key, cert, CA_pub_key):
+        self.adress = adress
+        self.port = port
+        self.private_key = private_key
+        self.cert = cert
+        self.CA_pub_key = CA_pub_key
+        self.session_key = {}  # They should be filled with username as key and symmetric key as value.
+        
 
 # key = generate_private_key('priv')
 # details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
