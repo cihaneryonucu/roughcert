@@ -71,7 +71,7 @@ def initiate_key_derivation(target_addr, target_port, client_private_key, client
     key = digest.finalize()
     # print(key)
 
-    key = base64.urlsafe_b64encode(key) #Encode it to string
+    key = base64.urlsafe_b64encode(key)  #Encode it to string
     fernet = Fernet(key)
     print('-----Round 4 ends-----')
 
@@ -316,7 +316,8 @@ class Crypto_Primitives:
     def encrypt(self, message):  #Message type is byte
         return self.fernet.encrypt(message)
 
-
+    def decrypt(self, ciphertext):
+        return self.fernet.decrypt(ciphertext)
         
 
 # key = generate_private_key('priv')
