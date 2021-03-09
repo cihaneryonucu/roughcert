@@ -71,7 +71,8 @@ def initiate_key_derivation(target_addr, target_port, client_private_key, client
     key = digest.finalize()
     # print(key)
 
-    fernet = Fernet(base64.urlsafe_b64encode(key))
+    key = base64.urlsafe_b64encode(key) #Encode it to string
+    fernet = Fernet(key)
     print('-----Round 4 ends-----')
 
     #Round 5: Finalize by sending a message
@@ -152,7 +153,8 @@ def listen_key_derivation(addr, port, server_private_key, server_cert, CA_pub_ke
     key = digest.finalize()
     # print(key)
     
-    fernet = Fernet(base64.urlsafe_b64encode(key))
+    key = base64.urlsafe_b64encode(key)
+    fernet = Fernet(key)
     print('-----Round 4 ends-----')
 
     #Round 5: Finalize by sending a message
