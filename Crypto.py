@@ -137,7 +137,7 @@ def export_cert(filename, cert):
         f.write(cert.public_bytes(serialization.Encoding.PEM))
 
 
-class Crypto_Primitives:
+class Crypto_Primitives(LogMixin):
     def __init__(self, adress, port, private_key, cert, CA_pub_key):
         self.adress = adress
         self.port = port
@@ -168,38 +168,38 @@ class Crypto_Primitives:
         tx_sock = zmq.Context().instance().socket(zmq.PAIR)
         tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
 
-        # TLS like key derivation: Round 1   
-        print('-----Round 1 starts-----') 
+        # TLS like key derivation: Round 1
+        self.logger.info('-----Round 1 starts-----') 
         client_secret = secrets.token_bytes(16)
         tx_sock.send_string('hej', flags=zmq.NOBLOCK)
         tx_sock.send(client_secret, flags=zmq.NOBLOCK)
-        print('-----Round 1 ends-----')
+        self.logger.info('-----Round 1 ends-----')
         
         # Round 2 listen
-        print('-----Round 2 starts-----')
+        self.logger.info('-----Round 2 starts-----')
         server_hey = tx_sock.recv()
         server_secret = tx_sock.recv()
         server_secret_signed = tx_sock.recv()
         server_cert_raw = tx_sock.recv()
         
         server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
-        print(cert, server_cert, CA_cert)
+        self.logger.info(cert, server_cert, CA_cert)
         try:
             CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
             # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
-            print('Server certificate verified.')
+            self.logger.info('Server certificate verified.')
         except cryptography.exceptions.InvalidSignature:
-            print("Certificate verification failed, invalid CA")
+            self.logger.info("Certificate verification failed, invalid CA")
             return None
         try:
             server_cert.public_key().verify(server_secret_signed, server_secret, padding.PKCS1v15(), hashes.SHA256())
-            print('Server signature verified')
+            self.logger.info('Server signature verified')
         except cryptography.exceptions.InvalidSignature:
-            print("Server signature verification failed, invalid key or signature")
+            self.logger.info("Server signature verification failed, invalid key or signature")
             return None
-        print('-----Round 2 ends-----')
+        self.logger.info('-----Round 2 ends-----')
         #Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
-        print('-----Round 3 starts-----')
+        self.logger.info('-----Round 3 starts-----')
         premaster_secret = secrets.token_bytes(16)
         
         premaster_secret_encrypted = server_cert.public_key().encrypt(premaster_secret, padding.PKCS1v15())
@@ -208,23 +208,23 @@ class Crypto_Primitives:
         tx_sock.send(premaster_secret_encrypted, flags=zmq.NOBLOCK)
         tx_sock.send(premaster_secret_signed, flags=zmq.NOBLOCK)
         tx_sock.send(client_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
-        print('-----Round 3 ends-----')
+        self.logger.info('-----Round 3 ends-----')
 
         #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
-        print('-----Round 4 starts-----')
+        self.logger.info('-----Round 4 starts-----')
         digest = hashes.Hash(hashes.SHA256())
         digest.update(client_secret)
         digest.update(server_secret)
         digest.update(premaster_secret)
         key = digest.finalize()
-        # print(key)
+        # self.logger.info(key)
 
         key = base64.urlsafe_b64encode(key)  #Encode it to string
         fernet = Fernet(key)
-        print('-----Round 4 ends-----')
+        self.logger.info('-----Round 4 ends-----')
 
         #Round 5: Finalize by sending a message
-        print('-----Round 5 starts-----')
+        self.logger.info('-----Round 5 starts-----')
         ct_finalize_server = tx_sock.recv()
         finalize_server = fernet.decrypt(ct_finalize_server)
         
@@ -234,89 +234,89 @@ class Crypto_Primitives:
 
         
         if finalize_client == finalize_server:
-            print('Finalized')
+            self.logger.info('Finalized')
             return key
         else:
-            print('Problem with the derived key')
+            self.logger.info('Problem with the derived key')
             return None
 
     
-def __listen_key_derivation(self, addr, port, server_private_key, server_cert, CA_pub_key):
-    # Connect
-    rx_sock = zmq.Context().instance().socket(zmq.PAIR)
-    rx_sock.bind('tcp://{}:{}'.format(addr, port))
+    def __listen_key_derivation(self, addr, port, server_private_key, server_cert, CA_pub_key):
+        # Connect
+        rx_sock = zmq.Context().instance().socket(zmq.PAIR)
+        rx_sock.bind('tcp://{}:{}'.format(addr, port))
 
-    # Round 1 listen
-    print('-----Round 1 starts-----')
-    client_hey = rx_sock.recv()
-    client_secret = rx_sock.recv()
-    print('-----Round 1 ends-----')
-    
-    #Round 2 send cert, response and secret
-    print('-----Round 2 starts-----')
-    server_secret = secrets.token_bytes(16)
-    
-    signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
-    
-    rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
-    rx_sock.send(server_secret, flags=zmq.NOBLOCK)
-    rx_sock.send(signed_server_secret, flags=zmq.NOBLOCK)
-    rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
-    print('-----Round 2 ends-----')
-    
-    #Round 3: Recieve client cert, signed and encrpyted secret and verify them
-    print('-----Round 3 starts-----')
-    premaster_secret_encrypted = rx_sock.recv()
-    premaster_secret_signed = rx_sock.recv()
-    client_cert_raw = rx_sock.recv()
+        # Round 1 listen
+        self.logger.info('-----Round 1 starts-----')
+        client_hey = rx_sock.recv()
+        client_secret = rx_sock.recv()
+        self.logger.info('-----Round 1 ends-----')
+        
+        #Round 2 send cert, response and secret
+        self.logger.info('-----Round 2 starts-----')
+        server_secret = secrets.token_bytes(16)
+        
+        signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
+        
+        rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
+        rx_sock.send(server_secret, flags=zmq.NOBLOCK)
+        rx_sock.send(signed_server_secret, flags=zmq.NOBLOCK)
+        rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
+        self.logger.info('-----Round 2 ends-----')
+        
+        #Round 3: Recieve client cert, signed and encrpyted secret and verify them
+        self.logger.info('-----Round 3 starts-----')
+        premaster_secret_encrypted = rx_sock.recv()
+        premaster_secret_signed = rx_sock.recv()
+        client_cert_raw = rx_sock.recv()
 
-    client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
+        client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
 
-    premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
+        premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
 
-    try:
-        CA_pub_key.public_key().verify(client_cert.signature, client_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
-        print('Client certificate verified.')
-    except cryptography.exceptions.InvalidSignature:
-        print("Certificate verification failed, invalid CA or certificate")
-        return None
-    try:
-        client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(), hashes.SHA256())
-        print('Premaster signature verified.')
-    except cryptography.exceptions.InvalidSignature:
-        print("Premaster signature verification failed, invalid key or signature")
-        return None
-    print('-----Round 3 ends-----')
-    
-    #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
-    print('-----Round 4 starts-----')
-    digest = hashes.Hash(hashes.SHA256())
-    digest.update(client_secret)
-    digest.update(server_secret)
-    digest.update(premaster_secret)
-    key = digest.finalize()
-    # print(key)
-    
-    key = base64.urlsafe_b64encode(key)
-    fernet = Fernet(key)
-    print('-----Round 4 ends-----')
+        try:
+            CA_pub_key.public_key().verify(client_cert.signature, client_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
+            self.logger.info('Client certificate verified.')
+        except cryptography.exceptions.InvalidSignature:
+            self.logger.info("Certificate verification failed, invalid CA or certificate")
+            return None
+        try:
+            client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(), hashes.SHA256())
+            self.logger.info('Premaster signature verified.')
+        except cryptography.exceptions.InvalidSignature:
+            self.logger.info("Premaster signature verification failed, invalid key or signature")
+            return None
+        self.logger.info('-----Round 3 ends-----')
+        
+        #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
+        self.logger.info('-----Round 4 starts-----')
+        digest = hashes.Hash(hashes.SHA256())
+        digest.update(client_secret)
+        digest.update(server_secret)
+        digest.update(premaster_secret)
+        key = digest.finalize()
+        # self.logger.info(key)
+        
+        key = base64.urlsafe_b64encode(key)
+        fernet = Fernet(key)
+        self.logger.info('-----Round 4 ends-----')
 
-    #Round 5: Finalize by sending a message
-    print('-----Round 5 starts-----')
-    
-    finalize_server = b"Finalize!"
-    ct_finalize_server = fernet.encrypt(finalize_server)
-    rx_sock.send(ct_finalize_server, flags=zmq.NOBLOCK)
+        #Round 5: Finalize by sending a message
+        self.logger.info('-----Round 5 starts-----')
+        
+        finalize_server = b"Finalize!"
+        ct_finalize_server = fernet.encrypt(finalize_server)
+        rx_sock.send(ct_finalize_server, flags=zmq.NOBLOCK)
 
-    ct_finalize_client = rx_sock.recv()
-    finalize_client = fernet.decrypt(ct_finalize_client)
+        ct_finalize_client = rx_sock.recv()
+        finalize_client = fernet.decrypt(ct_finalize_client)
 
-    if finalize_client == finalize_server:
-        print('Finalized')
-        return key
-    else:
-        print('Problem with the derived key')
-        return None
+        if finalize_client == finalize_server:
+            self.logger.info('Finalized')
+            return key
+        else:
+            self.logger.info('Problem with the derived key')
+            return None
         
 
 
