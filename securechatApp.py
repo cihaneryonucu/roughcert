@@ -8,7 +8,7 @@ import datetime
 from inquirer import Checkbox, prompt
 import textwrap
 
-
+from collections import deque
 from queue import SimpleQueue
 import threading
 
@@ -18,7 +18,20 @@ import message_pb2 as pbm
 import chat
 from connectionManager import connection_manager
 
-logging.basicConfig(stream=sys.stdout)
+
+class Logger:
+ 
+    def __init__(self, filename):
+        self.console = sys.stdout
+        self.file = open(filename, 'w')
+ 
+    def write(self, message):
+        self.console.write(message)
+        self.file.write(message)
+ 
+    def flush(self):
+        self.console.flush()
+        self.file.flush()
 
 def certificate_window(window, log, remotePeer):
     window_lines, window_cols = window.getmaxyx()
@@ -47,37 +60,74 @@ def logbook_window(window, log):
         window.scroll(1)
         window.refresh()
 
+def sanitize_chat_history(buffer, remotePeer):
+    require_sanitize = 0
+    indexes = []
+    for message in buffer:
+        if int(datetime.datetime.now().strftime("%s")) * 1000 > message.message.timestamp_expiration and message.sender.name == remotePeer.get('username'):
+            indexes.append(buffer.index(message))
+            require_sanitize = 1
+    return indexes, require_sanitize
+
 def chat_window(window, log, inbox, localUser, remotePeer):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 2
-    window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.scrollok(1)
     #window.box()
     title = " History "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
     message = pbm.SecureChat()
+
+    message_buffer = []
+    ready_to_print = 0
+
     while True:
+        sanitized = 0
+        indexes = sanitize_chat_history(message_buffer, remotePeer)
+
         if inbox.qsize() > 0: #check if we have any incoming message
             encoded_message = inbox.get()
             message.ParseFromString(encoded_message)
+            message_buffer.append(message)
             stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
             if message.sender.name == localUser.get("username"):
                 window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
             else:
                 window.addstr(bottom_line, 1, stringToAppend)
-            window.scroll(2)
+            window.scroll(1)
             window.refresh()
             log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
 
 
+        if sanitized:
+            for index in indexes:
+                del message_buffer[index]
+            window.clear()
+            window.refresh()
+            title = " History "
+            window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
+            window.refresh()
+            bottom_line = window_lines - 2
+            for message in message_buffer:
+                stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
+                if message.sender.name == localUser.get("username"):
+                    window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
+                else:
+                    window.addstr(bottom_line, 1, stringToAppend)
+                window.scroll(2)
+                window.refresh()
+            
+
+
 
 def input_window(window, log, outbox, inbox, localUser, remotePeer):
+    window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.clear()
     window.box()
-    title = " Input "
-    window.addstr(0, 0, title)
+    title = " Input - User: {}".format(localUser.get("username"))
+    window.addstr(0, int((window_cols - len(title)) / 2), title)
     window.refresh()
     curses.curs_set(1)
 
@@ -86,6 +136,8 @@ def input_window(window, log, outbox, inbox, localUser, remotePeer):
     while True:
         window.clear()
         window.box()
+        title = " Input - User: {} ".format(localUser.get("username"))
+        window.addstr(0, int((window_cols - len(title)) / 2), title)
         window.refresh()
         s = window.getstr(1, 1).decode('utf-8')
         if s is not None and s != "":
@@ -136,10 +188,10 @@ def main_app(stdscr, remotePeer, localUser):
     v_splitter = int(window_w * 0.65)
     h_l_splitter = int(window_h * 0.5)
 
-    chat_pad = stdscr.subpad(h_splitter, v_splitter, 0, 0)
-    input_pad = stdscr.subpad(window_h - h_splitter, v_splitter, h_splitter, 0)
-    certificate_pad = stdscr.subpad(h_l_splitter, window_w - v_splitter, 0, v_splitter)
-    logbook_pad = stdscr.subpad(window_h - h_l_splitter, window_w - v_splitter, h_l_splitter, v_splitter)
+    chat_pad = curses.newwin(h_splitter, v_splitter, 0, 0)
+    input_pad = curses.newwin(window_h - h_splitter, v_splitter, h_splitter, 0)
+    certificate_pad = curses.newwin(h_l_splitter, window_w - v_splitter, 0, v_splitter)
+    logbook_pad = curses.newwin(window_h - h_l_splitter, window_w - v_splitter, h_l_splitter, v_splitter)
 
 
     #None arguments are for testing
@@ -151,22 +203,22 @@ def main_app(stdscr, remotePeer, localUser):
     chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox, localUser, remotePeer))
     chat_history.daemon = True
     chat_history.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
     cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer))
     cert_view.daemon = True
     cert_view.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
     chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox, localUser, remotePeer))
     chat_sender.daemon = True
     chat_sender.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
     logbook = threading.Thread(target=logbook_window, args=(logbook_pad, log))
     logbook.daemon = True
     logbook.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
     chat_rx = chat.Receiver(local_chat_address=localUser.get('ipAddr'), local_chat_port=localUser.get('port'), inbox=inbox)
     chat_tx = chat.Sender(remote_peer_address=remotePeer.get('ipAddr'), remote_peer_port=remotePeer.get('port'), outbox=outbox)
@@ -182,6 +234,9 @@ def main_app(stdscr, remotePeer, localUser):
 
 
 if __name__ == "__main__":
+    
+    path = 'stdout.log'
+    sys.stdout = Logger(path)
     print(" ---- Secure Chat ----")
     try:
         # check input arguments
@@ -206,7 +261,6 @@ if __name__ == "__main__":
 
         while not contactList:
             answer = prompt(check_for_peers)
-            print(answer.get('Check for peers'))
             if answer.get('Check for peers') == ['yes']:
                 connection_manager.request_users()
                 contactList = connection_manager.getContactList()
@@ -224,10 +278,7 @@ if __name__ == "__main__":
                      choices=contactList)
             ]
         answer = prompt(questions)
-        print(answer)
         peer = answer.get('Peers')[0]
-        print(peer.get('ipAddr'), peer.get('port'))
-        input()
         wrapper(main_app, peer, local_user)
     except KeyboardInterrupt as e:
         connection_manager.remove_user()
