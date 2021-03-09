@@ -6,6 +6,8 @@ import time
 import datetime
 import datetime
 from inquirer import Checkbox, prompt
+import textwrap
+
 
 from queue import SimpleQueue
 import threading
@@ -59,8 +61,11 @@ def chat_window(window, log, inbox, localUser, remotePeer):
         if inbox.qsize() > 0: #check if we have any incoming message
             encoded_message = inbox.get()
             message.ParseFromString(encoded_message)
-            stringToAppend = "{} - {}:\n\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
-            window.addstr(bottom_line, 1,stringToAppend)
+            stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
+            if message.sender.name == localUser.get("username"):
+                window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
+            else:
+                window.addstr(bottom_line, 1, stringToAppend)
             window.scroll(2)
             window.refresh()
             log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
