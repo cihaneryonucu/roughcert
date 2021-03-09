@@ -14,168 +14,7 @@ from cryptography import x509
 from cryptography.x509 import NameOID
 from cryptography.hazmat.primitives import hashes
 import base64
-
-
-def initiate_key_derivation(target_addr, target_port, client_private_key, client_cert, CA_pub_key):
-    # Connect
-    tx_sock = zmq.Context().instance().socket(zmq.PAIR)
-    tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
-
-    # TLS like key derivation: Round 1   
-    print('-----Round 1 starts-----') 
-    client_secret = secrets.token_bytes(16)
-    tx_sock.send_string('hej', flags=zmq.NOBLOCK)
-    tx_sock.send(client_secret, flags=zmq.NOBLOCK)
-    print('-----Round 1 ends-----')
-    # Round 2 listen
-    print('-----Round 2 starts-----')
-    server_hey = tx_sock.recv()
-    server_secret = tx_sock.recv()
-    server_secret_signed = tx_sock.recv()
-    server_cert_raw = tx_sock.recv()
-    
-    server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
-
-    try:
-        CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
-        # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
-        print('Server certificate verified.')
-    except cryptography.exceptions.InvalidSignature:
-        print("Certificate verification failed, invalid CA")
-        return None
-    try:
-        server_cert.public_key().verify(server_secret_signed, server_secret, padding.PKCS1v15(), hashes.SHA256())
-        print('Server signature verified')
-    except cryptography.exceptions.InvalidSignature:
-        print("Server signature verification failed, invalid key or signature")
-        return None
-    print('-----Round 2 ends-----')
-    #Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
-    print('-----Round 3 starts-----')
-    premaster_secret = secrets.token_bytes(16)
-    
-    premaster_secret_encrypted = server_cert.public_key().encrypt(premaster_secret, padding.PKCS1v15())
-    premaster_secret_signed = client_private_key.sign(premaster_secret, padding.PKCS1v15(), hashes.SHA256())
-    
-    tx_sock.send(premaster_secret_encrypted, flags=zmq.NOBLOCK)
-    tx_sock.send(premaster_secret_signed, flags=zmq.NOBLOCK)
-    tx_sock.send(client_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
-    print('-----Round 3 ends-----')
-
-    #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
-    print('-----Round 4 starts-----')
-    digest = hashes.Hash(hashes.SHA256())
-    digest.update(client_secret)
-    digest.update(server_secret)
-    digest.update(premaster_secret)
-    key = digest.finalize()
-    # print(key)
-
-    key = base64.urlsafe_b64encode(key)  #Encode it to string
-    fernet = Fernet(key)
-    print('-----Round 4 ends-----')
-
-    #Round 5: Finalize by sending a message
-    print('-----Round 5 starts-----')
-    ct_finalize_server = tx_sock.recv()
-    finalize_server = fernet.decrypt(ct_finalize_server)
-    
-    finalize_client = b"Finalize!"
-    ct_finalize_client = fernet.encrypt(finalize_client)
-    tx_sock.send(ct_finalize_client, flags=zmq.NOBLOCK)
-
-    
-    if finalize_client == finalize_server:
-        print('Finalized')
-        return key
-    else:
-        print('Problem with the derived key')
-        return None
-
-    
-
-
-
-    
-def listen_key_derivation(addr, port, server_private_key, server_cert, CA_pub_key):
-    # Connect
-    rx_sock = zmq.Context().instance().socket(zmq.PAIR)
-    rx_sock.bind('tcp://{}:{}'.format(addr, port))
-
-    # Round 1 listen
-    print('-----Round 1 starts-----')
-    client_hey = rx_sock.recv()
-    client_secret = rx_sock.recv()
-    print('-----Round 1 ends-----')
-    
-    #Round 2 send cert, response and secret
-    print('-----Round 2 starts-----')
-    server_secret = secrets.token_bytes(16)
-    
-    signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
-    
-    rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
-    rx_sock.send(server_secret, flags=zmq.NOBLOCK)
-    rx_sock.send(signed_server_secret, flags=zmq.NOBLOCK)
-    rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
-    print('-----Round 2 ends-----')
-    
-    #Round 3: Recieve client cert, signed and encrpyted secret and verify them
-    print('-----Round 3 starts-----')
-    premaster_secret_encrypted = rx_sock.recv()
-    premaster_secret_signed = rx_sock.recv()
-    client_cert_raw = rx_sock.recv()
-
-    client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
-
-    premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
-
-    try:
-        CA_pub_key.public_key().verify(client_cert.signature, client_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
-        print('Client certificate verified.')
-    except cryptography.exceptions.InvalidSignature:
-        print("Certificate verification failed, invalid CA or certificate")
-        return None
-    try:
-        client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(), hashes.SHA256())
-        print('Premaster signature verified.')
-    except cryptography.exceptions.InvalidSignature:
-        print("Premaster signature verification failed, invalid key or signature")
-        return None
-    print('-----Round 3 ends-----')
-    
-    #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
-    print('-----Round 4 starts-----')
-    digest = hashes.Hash(hashes.SHA256())
-    digest.update(client_secret)
-    digest.update(server_secret)
-    digest.update(premaster_secret)
-    key = digest.finalize()
-    # print(key)
-    
-    key = base64.urlsafe_b64encode(key)
-    fernet = Fernet(key)
-    print('-----Round 4 ends-----')
-
-    #Round 5: Finalize by sending a message
-    print('-----Round 5 starts-----')
-    
-    finalize_server = b"Finalize!"
-    ct_finalize_server = fernet.encrypt(finalize_server)
-    rx_sock.send(ct_finalize_server, flags=zmq.NOBLOCK)
-
-    ct_finalize_client = rx_sock.recv()
-    finalize_client = fernet.decrypt(ct_finalize_client)
-
-    if finalize_client == finalize_server:
-        print('Finalized')
-        return key
-    else:
-        print('Problem with the derived key')
-        return None
-
-
-    
+from LogMixin import LogMixin
 
     
 def generate_private_key(filename):
@@ -292,6 +131,7 @@ def import_private_key(filename):
                                                      default_backend())  # todo: replace password with getpass().encode("utf-8")
     return private_key
 
+
 def export_cert(filename, cert):
     with open(filename, "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
@@ -309,9 +149,9 @@ class Crypto_Primitives:
 
     def establish_session_key(self, isClient, target_addr=None, target_port=None):  # if client, you should specify the address and port
         if isClient:
-            key = initiate_key_derivation(target_addr, target_port, self.__private_key, self.cert, self.CA_pub_key)
+            key = self.__initiate_key_derivation(target_addr, target_port, self.__private_key, self.cert, self.CA_pub_key)
         else:
-            key = listen_key_derivation(self.adress, self.port, self.__private_key, self.cert, self.CA_pub_key)
+            key = self.__listen_key_derivation(self.adress, self.port, self.__private_key, self.cert, self.CA_pub_key)
             
         self.fernet = Fernet(key)
         self.session_key = key
@@ -322,35 +162,203 @@ class Crypto_Primitives:
 
     def decrypt(self, ciphertext):
         return self.fernet.decrypt(ciphertext)
+
+    def __initiate_key_derivation(self, target_addr, target_port, client_private_key, client_cert, CA_pub_key):
+        # Connect
+        tx_sock = zmq.Context().instance().socket(zmq.PAIR)
+        tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
+
+        # TLS like key derivation: Round 1   
+        print('-----Round 1 starts-----') 
+        client_secret = secrets.token_bytes(16)
+        tx_sock.send_string('hej', flags=zmq.NOBLOCK)
+        tx_sock.send(client_secret, flags=zmq.NOBLOCK)
+        print('-----Round 1 ends-----')
+        
+        # Round 2 listen
+        print('-----Round 2 starts-----')
+        server_hey = tx_sock.recv()
+        server_secret = tx_sock.recv()
+        server_secret_signed = tx_sock.recv()
+        server_cert_raw = tx_sock.recv()
+        
+        server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
+        print(cert, server_cert, CA_cert)
+        try:
+            CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
+            # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+            print('Server certificate verified.')
+        except cryptography.exceptions.InvalidSignature:
+            print("Certificate verification failed, invalid CA")
+            return None
+        try:
+            server_cert.public_key().verify(server_secret_signed, server_secret, padding.PKCS1v15(), hashes.SHA256())
+            print('Server signature verified')
+        except cryptography.exceptions.InvalidSignature:
+            print("Server signature verification failed, invalid key or signature")
+            return None
+        print('-----Round 2 ends-----')
+        #Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
+        print('-----Round 3 starts-----')
+        premaster_secret = secrets.token_bytes(16)
+        
+        premaster_secret_encrypted = server_cert.public_key().encrypt(premaster_secret, padding.PKCS1v15())
+        premaster_secret_signed = client_private_key.sign(premaster_secret, padding.PKCS1v15(), hashes.SHA256())
+        
+        tx_sock.send(premaster_secret_encrypted, flags=zmq.NOBLOCK)
+        tx_sock.send(premaster_secret_signed, flags=zmq.NOBLOCK)
+        tx_sock.send(client_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
+        print('-----Round 3 ends-----')
+
+        #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
+        print('-----Round 4 starts-----')
+        digest = hashes.Hash(hashes.SHA256())
+        digest.update(client_secret)
+        digest.update(server_secret)
+        digest.update(premaster_secret)
+        key = digest.finalize()
+        # print(key)
+
+        key = base64.urlsafe_b64encode(key)  #Encode it to string
+        fernet = Fernet(key)
+        print('-----Round 4 ends-----')
+
+        #Round 5: Finalize by sending a message
+        print('-----Round 5 starts-----')
+        ct_finalize_server = tx_sock.recv()
+        finalize_server = fernet.decrypt(ct_finalize_server)
+        
+        finalize_client = b"Finalize!"
+        ct_finalize_client = fernet.encrypt(finalize_client)
+        tx_sock.send(ct_finalize_client, flags=zmq.NOBLOCK)
+
+        
+        if finalize_client == finalize_server:
+            print('Finalized')
+            return key
+        else:
+            print('Problem with the derived key')
+            return None
+
+    
+def __listen_key_derivation(self, addr, port, server_private_key, server_cert, CA_pub_key):
+    # Connect
+    rx_sock = zmq.Context().instance().socket(zmq.PAIR)
+    rx_sock.bind('tcp://{}:{}'.format(addr, port))
+
+    # Round 1 listen
+    print('-----Round 1 starts-----')
+    client_hey = rx_sock.recv()
+    client_secret = rx_sock.recv()
+    print('-----Round 1 ends-----')
+    
+    #Round 2 send cert, response and secret
+    print('-----Round 2 starts-----')
+    server_secret = secrets.token_bytes(16)
+    
+    signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
+    
+    rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
+    rx_sock.send(server_secret, flags=zmq.NOBLOCK)
+    rx_sock.send(signed_server_secret, flags=zmq.NOBLOCK)
+    rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
+    print('-----Round 2 ends-----')
+    
+    #Round 3: Recieve client cert, signed and encrpyted secret and verify them
+    print('-----Round 3 starts-----')
+    premaster_secret_encrypted = rx_sock.recv()
+    premaster_secret_signed = rx_sock.recv()
+    client_cert_raw = rx_sock.recv()
+
+    client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
+
+    premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
+
+    try:
+        CA_pub_key.public_key().verify(client_cert.signature, client_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
+        print('Client certificate verified.')
+    except cryptography.exceptions.InvalidSignature:
+        print("Certificate verification failed, invalid CA or certificate")
+        return None
+    try:
+        client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(), hashes.SHA256())
+        print('Premaster signature verified.')
+    except cryptography.exceptions.InvalidSignature:
+        print("Premaster signature verification failed, invalid key or signature")
+        return None
+    print('-----Round 3 ends-----')
+    
+    #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
+    print('-----Round 4 starts-----')
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(client_secret)
+    digest.update(server_secret)
+    digest.update(premaster_secret)
+    key = digest.finalize()
+    # print(key)
+    
+    key = base64.urlsafe_b64encode(key)
+    fernet = Fernet(key)
+    print('-----Round 4 ends-----')
+
+    #Round 5: Finalize by sending a message
+    print('-----Round 5 starts-----')
+    
+    finalize_server = b"Finalize!"
+    ct_finalize_server = fernet.encrypt(finalize_server)
+    rx_sock.send(ct_finalize_server, flags=zmq.NOBLOCK)
+
+    ct_finalize_client = rx_sock.recv()
+    finalize_client = fernet.decrypt(ct_finalize_client)
+
+    if finalize_client == finalize_server:
+        print('Finalized')
+        return key
+    else:
+        print('Problem with the derived key')
+        return None
         
 
-# key = generate_private_key('client1_private_key.pem')
-# details = {'country': 'RM', 'region': 'Asia Minor', 'city': 'Ephesus', 'org': 'Civis romanus sum', 'hostname': 'rome.com'}
-# # cert = generate_self_signed_cert(key, 'client1_cert.pem', details, 30)
-# key = import_private_key('CA_Private_key.pem')
-# cert = import_certificate('CA_cert.pem')
+
+# key = generate_private_key('CA_private_key.pem')
+# details = {'country': 'WW', 'region': 'WW', 'city': 'Stockholm', 'org': 'I am the CA', 'hostname': 'CA.com'}
+# cert = generate_self_signed_cert(key, 'CA_cert.pem', details, 30)
+# print(cert)
+
+# key = generate_private_key('client2_private_key.pem')
+# details = {'country': 'SE', 'region': 'Stockholm', 'city': 'Stockholm', 'org': 'Lion of the North', 'hostname': 'GustavII.com'}
+
+# ca_key = import_private_key('CA_Private_key.pem')
+# ca_cert = import_certificate('CA_cert.pem')
+
 # csr = create_csr(key, details)
-
-# client_cert = sign_csr(csr, cert, key, 10)
+# client_cert = sign_csr(csr, ca_cert, ca_key, 10)
 # print(client_cert)
-# export_cert('client1_cert.pem', cert)
+# export_cert('client2_cert.pem', client_cert)
 
-# if sys.argv[1] == 's':
-#     crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, cert)
-#     crypto.establish_session_key(False)
-#     c = crypto.encrypt(b'Folsom')
-#     print(c)
-#     print(crypto.decrypt(c))
-# elif sys.argv[1] == 'c':
-#     crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, cert)
-#     crypto.establish_session_key(True, sys.argv[2], sys.argv[3])
-#     c = crypto.encrypt(b'Folsom')
-#     print(c)
-#     print(crypto.decrypt(c))
-# else:
-#     # a = cert.public_bytes(serialization.Encoding.PEM)
-#     # b = x509.load_pem_x509_certificate(a,default_backend())
-#     # if cert.serial_number == b.serial_number:
-#     #     print('tes')
-#     # b.public_key().verify(cert.signature,cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
-#     print('Nope')
+
+if sys.argv[1] == 's':
+    key = import_private_key('client1_private_key.pem')
+    cert = import_certificate('client1_cert.pem')
+    CA_cert = import_certificate('CA_cert.pem')
+    crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, CA_cert)
+    crypto.establish_session_key(False)
+    c = crypto.encrypt(b'Folsom')
+    print(c)
+    print(crypto.decrypt(c))
+elif sys.argv[1] == 'c':
+    key = import_private_key('client2_private_key.pem')
+    cert = import_certificate('client2_cert.pem')
+    CA_cert = import_certificate('CA_cert.pem')
+    crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, CA_cert)
+    crypto.establish_session_key(True, sys.argv[2], sys.argv[3])
+    c = crypto.encrypt(b'Folsom')
+    print(c)
+    print(crypto.decrypt(c))
+else:
+    # a = cert.public_bytes(serialization.Encoding.PEM)
+    # b = x509.load_pem_x509_certificate(a,default_backend())
+    # if cert.serial_number == b.serial_number:
+    #     print('tes')
+    # b.public_key().verify(cert.signature,cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+    print('Nope')
