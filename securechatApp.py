@@ -63,9 +63,9 @@ def logbook_window(window, log):
 def sanitize_chat_history(buffer, remotePeer):
     require_sanitize = 0
     indexes = []
-    for message in buffer:
-        if int(datetime.datetime.now().strftime("%s")) * 1000 > message.message.timestamp_expiration and message.sender.name == remotePeer.get('username'):
-            indexes.append(buffer.index(message))
+    for msg in buffer:
+        if int(datetime.datetime.now().strftime("%s")) * 1000 > msg.message.timestamp_expiration and msg.sender.name == remotePeer.get('username'):
+            indexes.append(buffer.index(msg))
             require_sanitize = 1
     return indexes, require_sanitize
 
@@ -75,18 +75,37 @@ def chat_window(window, log, inbox, localUser, remotePeer):
     window.scrollok(1)
     #window.box()
     title = " History "
-    window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
+    window.addstr(2, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
-    message = pbm.SecureChat()
 
     message_buffer = []
     ready_to_print = 0
 
-    while True:
-        sanitized = 0
-        indexes = sanitize_chat_history(message_buffer, remotePeer)
+    sanitized = 0
+    indexes = []
 
+
+    while True:
+        if sanitized:
+            for index in indexes:
+                del message_buffer[index]
+            window.erase()
+            title = " History "
+            bottom_line = window_lines - 2
+            window.addstr(2, int((window_cols - len(title)) / 2 + 1), title)
+            for message in message_buffer:
+                stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
+                if message.sender.name == localUser.get("username"):
+                    window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
+                else:
+                    window.addstr(bottom_line, 1, stringToAppend)
+                window.scroll(1)
+            window.refresh()
+            sanitized = 0
+            indexes = []
+            
         if inbox.qsize() > 0: #check if we have any incoming message
+            message = pbm.SecureChat()
             encoded_message = inbox.get()
             message.ParseFromString(encoded_message)
             message_buffer.append(message)
@@ -99,25 +118,8 @@ def chat_window(window, log, inbox, localUser, remotePeer):
             window.refresh()
             log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
 
-
-        if sanitized:
-            for index in indexes:
-                del message_buffer[index]
-            window.clear()
-            window.refresh()
-            title = " History "
-            window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
-            window.refresh()
-            bottom_line = window_lines - 2
-            for message in message_buffer:
-                stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
-                if message.sender.name == localUser.get("username"):
-                    window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
-                else:
-                    window.addstr(bottom_line, 1, stringToAppend)
-                window.scroll(2)
-                window.refresh()
-            
+        indexes, sanitized = sanitize_chat_history(message_buffer, remotePeer)
+         
 
 
 
