@@ -305,10 +305,13 @@ class Crypto_Primitives:
 
     def establish_session_key(self, isClient, target_addr, target_port):
         if isClient:
-            self.session_key = initiate_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
+            key = initiate_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
         else:
-            self.session_key = listen_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
-        self.fernet = Fernet(self.session_key)
+            key = listen_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
+            
+        self.fernet = Fernet(key)
+        self.session_key = key
+
 
     # def encrypt(self, message):  #Message type is byte
     #     fe
