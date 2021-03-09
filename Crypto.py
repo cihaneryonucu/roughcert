@@ -183,7 +183,6 @@ class Crypto_Primitives(LogMixin):
         server_cert_raw = tx_sock.recv()
         
         server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
-        self.logger.info(cert, server_cert, CA_cert)
         try:
             CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
             # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
@@ -320,45 +319,29 @@ class Crypto_Primitives(LogMixin):
         
 
 
-# key = generate_private_key('CA_private_key.pem')
-# details = {'country': 'WW', 'region': 'WW', 'city': 'Stockholm', 'org': 'I am the CA', 'hostname': 'CA.com'}
-# cert = generate_self_signed_cert(key, 'CA_cert.pem', details, 30)
-# print(cert)
+# For testing uncomment below and run as:
+# server:python3 Crypto.py s [local_address] [local_port] - for example: python3 Crypto.py s 127.0.0.1 1111
+# client:python3 Crypto.py c [target_address] [target_port] - for example: python3 Crypto.py c 127.0.0.1 1111
+# You can use the example certificates and keys which can be found in credentials folder. 
+# Note that these keys/cert should not be used for real world scenarios but used only for testing the system.
 
-# key = generate_private_key('client2_private_key.pem')
-# details = {'country': 'SE', 'region': 'Stockholm', 'city': 'Stockholm', 'org': 'Lion of the North', 'hostname': 'GustavII.com'}
-
-# ca_key = import_private_key('CA_Private_key.pem')
-# ca_cert = import_certificate('CA_cert.pem')
-
-# csr = create_csr(key, details)
-# client_cert = sign_csr(csr, ca_cert, ca_key, 10)
-# print(client_cert)
-# export_cert('client2_cert.pem', client_cert)
-
-
-if sys.argv[1] == 's':
-    key = import_private_key('client1_private_key.pem')
-    cert = import_certificate('client1_cert.pem')
-    CA_cert = import_certificate('CA_cert.pem')
-    crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, CA_cert)
-    crypto.establish_session_key(False)
-    c = crypto.encrypt(b'Folsom')
-    print(c)
-    print(crypto.decrypt(c))
-elif sys.argv[1] == 'c':
-    key = import_private_key('client2_private_key.pem')
-    cert = import_certificate('client2_cert.pem')
-    CA_cert = import_certificate('CA_cert.pem')
-    crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, CA_cert)
-    crypto.establish_session_key(True, sys.argv[2], sys.argv[3])
-    c = crypto.encrypt(b'Folsom')
-    print(c)
-    print(crypto.decrypt(c))
-else:
-    # a = cert.public_bytes(serialization.Encoding.PEM)
-    # b = x509.load_pem_x509_certificate(a,default_backend())
-    # if cert.serial_number == b.serial_number:
-    #     print('tes')
-    # b.public_key().verify(cert.signature,cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
-    print('Nope')
+# if sys.argv[1] == 's':
+#     key = import_private_key('credentials/client1_private_key.pem')
+#     cert = import_certificate('credentials/client1_cert.pem')
+#     CA_cert = import_certificate('credentials/CA_cert.pem')
+#     crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, CA_cert)
+#     crypto.establish_session_key(False)
+#     c = crypto.encrypt(b'Folsom')
+#     print(c)
+#     print(crypto.decrypt(c))
+# elif sys.argv[1] == 'c':
+#     key = import_private_key('credentials/client2_private_key.pem')
+#     cert = import_certificate('credentials/client2_cert.pem')
+#     CA_cert = import_certificate('credentials/CA_cert.pem')
+#     crypto = Crypto_Primitives(sys.argv[2], sys.argv[3], key, cert, CA_cert)
+#     crypto.establish_session_key(True, sys.argv[2], sys.argv[3])
+#     c = crypto.encrypt(b'Folsom')
+#     print(c)
+#     print(crypto.decrypt(c))
+# else:
+#     print('Nope')
