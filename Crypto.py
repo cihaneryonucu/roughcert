@@ -313,8 +313,10 @@ class Crypto_Primitives:
         self.session_key = key
 
 
-    # def encrypt(self, message):  #Message type is byte
-    #     fe
+    def encrypt(self, message):  #Message type is byte
+        return self.fernet.encrypt(message)
+
+
         
 
 # key = generate_private_key('priv')
