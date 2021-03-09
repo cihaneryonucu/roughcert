@@ -299,12 +299,17 @@ class Crypto_Primitives:
         self.cert = cert
         self.CA_pub_key = CA_pub_key
         self.session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as value.
+        self.fernet = None
 
     def establish_session_key(self, isClient, target_addr, target_port):
         if isClient:
             self.session_key = initiate_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
         else:
             self.session_key = listen_key_derivation(target_addr, target_port, self.private_key, self.cert, self.CA_pub_key)
+        self.fernet = Fernet(self.session_key)
+
+    # def encrypt(self, message):  #Message type is byte
+    #     fe
         
 
 # key = generate_private_key('priv')
