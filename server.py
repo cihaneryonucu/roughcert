@@ -53,7 +53,7 @@ class Server(LogMixin):
             self.userList.append(new_user)
             reply.result = 'Added user to contact list'
         else:
-            self.logger.WARNING('User is present already! ')
+            self.logger.warning('User is present already! ')
             reply.result = 'User is already present in contact contact list'
         self.logger.info(self.userList)
         reply.action = 'ACK'
@@ -66,7 +66,7 @@ class Server(LogMixin):
             self.userList.remove(del_user)
             reply.result = 'Deleted user from contact list'
         except ValueError:
-            self.logger.WARNING("User not in list")
+            self.logger.warning("User not in list")
             reply.result = 'User is not present in contact list'
         reply.action = 'ACK'
         return reply
