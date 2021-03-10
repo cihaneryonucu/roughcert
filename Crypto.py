@@ -145,6 +145,7 @@ class Crypto_Primitives(LogMixin):
         self.CA_pub_key = CA_pub_key
         self.session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as value.
         self.fernet = None
+        self.peer_cert = None
 
     def establish_session_key(self, isClient):  # if client, you should specify the address and port
         if isClient:
@@ -182,6 +183,8 @@ class Crypto_Primitives(LogMixin):
         server_cert_raw = tx_sock.recv()
         
         server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
+        self.peer_cert = server_cert
+
         try:
             CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
             # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
@@ -271,6 +274,7 @@ class Crypto_Primitives(LogMixin):
         client_cert_raw = rx_sock.recv()
 
         client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
+        self.peer_cert = client_cert
 
         premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
 

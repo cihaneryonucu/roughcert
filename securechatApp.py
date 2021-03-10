@@ -32,13 +32,16 @@ class Logger:
         self.console.flush()
         self.file.flush()
 
-def certificate_window(window, log, remotePeer):
+def certificate_window(window, log, remotePeer, user):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.box()
     title = " Peer certificate "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.addstr(2, 1, '{}'.format(remotePeer))
+    if user.crypto.peer_cert is not None:
+        window.addstr(3, 1, '{}'.format(user.crypto.peer_cert))
+
 
     window.refresh()
     while True:
@@ -215,7 +218,7 @@ def main_app(stdscr, remotePeer, localUser, user):
     chat_history.start()
     time.sleep(1)
 
-    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer))
+    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer, user))
     cert_view.daemon = True
     cert_view.start()
     time.sleep(1)
