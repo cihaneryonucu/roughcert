@@ -235,7 +235,7 @@ def main_app(stdscr, remotePeer, localUser, user):
     #     user.force_request()
 
     chat_rx = chat.Receiver(local_user=localUser, crypto=user.crypto, inbox=inbox)
-    chat_tx = chat.Sender(remote_peer=localUser, crypto=user.crypto, outbox=outbox)
+    chat_tx = chat.Sender(remote_peer=remotePeer, crypto=user.crypto, outbox=outbox)
 
     chat_rx.run()
     chat_tx.run()
