@@ -27,7 +27,12 @@ class CryptoTesting(unittest.TestCase):
         cert = Crypto.generate_self_signed_cert(private, 'testSelfSigned.pem', details, 10)
         self.assertNotIsInstance(Crypto.import_private_key('testSelfSigned.pem'),Crypto.rsa.RSAPrivateKey)
 
-    
+    # This test whether we import the certificate or not.
+    def test_imported_certificate(self):
+        private = Crypto.generate_private_key('testKey.pem')
+        details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+        cert = Crypto.generate_self_signed_cert(private, 'testSelfSigned.pem', details, 10)
+        self.assertIsInstance(Crypto.import_certificate('testSelfSigned.pem'),Crypto.x509.Certificate)
 
 if __name__ == '__main__':
     unittest.main()

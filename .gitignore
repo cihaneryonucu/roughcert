@@ -149,3 +149,5 @@ pub
 priv
 =======
 >>>>>>> crypto-testing
+
+testSelfSigned.pem
