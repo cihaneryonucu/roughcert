@@ -29,7 +29,7 @@ Activate the environment: `conda activate roughcert`
 Install the required pip dependencies: `pip install --no-cache-dir -r python-requirements.txt`
 
 # Running the server
-The server default port is `tcp://*:10040` It is recommended to run the server at this port.
+The server default port is `tcp://*:10040`. It is recommended to run the server at this port.
 There are three viable options: run the server locally, use the included Dockerfile to run the server as a service or use our server provided at `130.237.202.97` (Please be nice, this is for testing only and uptime is not guaranteed!)
 
 ## Run as docker
@@ -65,7 +65,7 @@ The client will first contact the backend server to register the new user and re
 
 You need to specify a key prefix for each client in the form of client1 or client2. At the current state of things, we provide two possible client keys. In a future version, we might extend this to include a CA that can automatically generate credentials for new clients. 
 
-__If you decide to run your own server, you will need to specify the paramenter `--remote XXX`  to the client with the IP of the server!__
+__If you decide to run your own server, you will need to specify the paramenter `--remote XXX` to the client with the IP of the server!__
 
 
 
