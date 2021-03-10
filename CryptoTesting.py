@@ -38,7 +38,7 @@ class CryptoTesting(unittest.TestCase):
         # Also verify the signature. Verify returns nothing if verified and raises exception if not verified
         try:
             private.public_key().verify(cert.signature, cert.tbs_certificate_bytes,
-                                    Crypto.padding.PKCS1v15(), Crypto.hashes.SHA256())
+                                        Crypto.padding.PKCS1v15(), Crypto.hashes.SHA256())
         except Crypto.cryptography.exceptions.InvalidSignature:
             self.fail('Verification of signature failed')
 
@@ -53,6 +53,18 @@ class CryptoTesting(unittest.TestCase):
         details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
         csr = Crypto.create_csr(private, details)
         self.assertIsInstance(csr, Crypto.x509.CertificateSigningRequest)  # Is it a csr?
+
+    def test_sign_csr(self):
+        private = Crypto.generate_private_key('testKey.pem')
+        details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+        cert = Crypto.generate_self_signed_cert(private, 'testSelfSigned.pem', details, 10)
+        csr = Crypto.create_csr(private, details)
+        signed_csr = Crypto.sign_csr(csr, cert, private, 10)
+
+        # This should be a certificate now since it is signed.
+        self.assertIsInstance(signed_csr, Crypto.x509.Certificate)
+        # And not CSR anymore...
+        self.assertNotIsInstance(signed_csr, Crypto.x509.CertificateSigningRequest)
 
 
 if __name__ == '__main__':
