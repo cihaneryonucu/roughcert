@@ -169,7 +169,10 @@ def input_argument():
                         help='ip of the host')
     parser.add_argument('--remote',
                         type=str,
-                        help='ip of the server')    
+                        help='ip of the server')
+    parser.add_argument('--key',
+                        type=str,
+                        help='Specify certificate/key basename')
     return parser.parse_args(), parser
 
 
@@ -246,11 +249,11 @@ if __name__ == "__main__":
     try:
         # check input arguments
         args, parser = input_argument()
-        if args.username is None or args.port is None or args.host is None:
+        if args.username is None or args.port is None or args.host is None or args.key is None:
             parser.print_help()
             sys.exit()
 
-        local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port}
+        local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port, "keyBase" : args.key}
         if args.remote is None or args.remote == '':
             remote = '130.237.202.97'
         else:
