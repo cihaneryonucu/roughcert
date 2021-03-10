@@ -12,7 +12,14 @@ class CryptoTesting(unittest.TestCase):
         Crypto.generate_private_key('testKey.pem')
         self.assertIsInstance(Crypto.import_private_key('testKey.pem'),Crypto.rsa.RSAPrivateKey)
 
-    
+    #Test is the created self signed certificate is done properly
+    def test_is_self_signed_certificate(self):
+        private = Crypto.generate_private_key('testKey.pem')
+        details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+        cert = Crypto.generate_self_signed_cert(private,'testSelfSigned.pem', details,10)
+        self.assertIsInstance(cert,Crypto.x509.Certificate) # Is it a certificate?
+        self.assertGreater(Crypto.datetime.utcnow() + Crypto.timedelta(days=10),cert.not_valid_before) # Is validity expires after the creation plus 10 days?
+
 
 if __name__ == '__main__':
     unittest.main()
