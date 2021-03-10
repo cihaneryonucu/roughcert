@@ -145,8 +145,9 @@ class Crypto_Primitives(LogMixin):
         self.CA_pub_key = CA_pub_key
         self.session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as value.
         self.fernet = None
+        self.peer_cert = None
 
-    def establish_session_key(self, isClient, target_addr=None, target_port=None):  # if client, you should specify the address and port
+    def establish_session_key(self, isClient):  # if client, you should specify the address and port
         if isClient:
             key = self.__initiate_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
         else:
@@ -168,7 +169,7 @@ class Crypto_Primitives(LogMixin):
         # tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
         tx_sock = self.socket
         # TLS like key derivation: Round 1
-        self.logger.info('-----Round 1 starts-----') 
+        self.logger.info('-----Client Round 1 starts-----')
         client_secret = secrets.token_bytes(16)
         tx_sock.send_string('hej', flags=zmq.NOBLOCK)
         tx_sock.send(client_secret, flags=zmq.NOBLOCK)
@@ -182,6 +183,8 @@ class Crypto_Primitives(LogMixin):
         server_cert_raw = tx_sock.recv()
         
         server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
+        self.peer_cert = server_cert
+
         try:
             CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(), hashes.SHA256())
             # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
@@ -210,7 +213,7 @@ class Crypto_Primitives(LogMixin):
 
         #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
         self.logger.info('-----Round 4 starts-----')
-        digest = hashes.Hash(hashes.SHA256())
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
         digest.update(client_secret)
         digest.update(server_secret)
         digest.update(premaster_secret)
@@ -247,7 +250,7 @@ class Crypto_Primitives(LogMixin):
         rx_sock = self.socket
 
         # Round 1 listen
-        self.logger.info('-----Round 1 starts-----')
+        self.logger.info('----- Server Round 1 starts-----')
         client_hey = rx_sock.recv()
         client_secret = rx_sock.recv()
         self.logger.info('-----Round 1 ends-----')
@@ -271,6 +274,7 @@ class Crypto_Primitives(LogMixin):
         client_cert_raw = rx_sock.recv()
 
         client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
+        self.peer_cert = client_cert
 
         premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
 
@@ -290,7 +294,7 @@ class Crypto_Primitives(LogMixin):
         
         #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
         self.logger.info('-----Round 4 starts-----')
-        digest = hashes.Hash(hashes.SHA256())
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
         digest.update(client_secret)
         digest.update(server_secret)
         digest.update(premaster_secret)

@@ -32,15 +32,20 @@ class Logger:
         self.console.flush()
         self.file.flush()
 
-def certificate_window(window, log, remotePeer):
+def certificate_window(window, log, remotePeer, user):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.box()
     title = " Peer certificate "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
+    window.addstr(2, 1, '{}'.format(remotePeer))
+    if user.crypto.peer_cert is not None:
+        window.addstr(3, 1, '{}'.format(user.crypto.peer_cert))
+
+
     window.refresh()
     while True:
-        log.put('Updated certificate')
+        #log.put('Updated certificate')
         time.sleep(10)
     # Validate Certificate here
 
@@ -169,11 +174,14 @@ def input_argument():
                         help='ip of the host')
     parser.add_argument('--remote',
                         type=str,
-                        help='ip of the server')    
+                        help='ip of the server')
+    parser.add_argument('--key',
+                        type=str,
+                        help='Specify certificate/key basename')
     return parser.parse_args(), parser
 
 
-def main_app(stdscr, remotePeer, localUser):
+def main_app(stdscr, remotePeer, localUser, user):
 
     ### curses set up
 
@@ -210,7 +218,7 @@ def main_app(stdscr, remotePeer, localUser):
     chat_history.start()
     time.sleep(1)
 
-    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer))
+    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer, user))
     cert_view.daemon = True
     cert_view.start()
     time.sleep(1)
@@ -225,9 +233,13 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.start()
     time.sleep(1)
 
-    chat_rx = chat.Receiver(local_chat_address=localUser.get('ipAddr'), local_chat_port=localUser.get('port'), inbox=inbox)
-    chat_tx = chat.Sender(remote_peer_address=remotePeer.get('ipAddr'), remote_peer_port=remotePeer.get('port'), outbox=outbox)
-     
+    # if not user.isInitiator:
+    #     user.set_remote_address(remotePeer.get('ipAddr'))
+    #     user.force_request()
+
+    chat_rx = chat.Receiver(local_user=localUser, crypto=user.crypto, inbox=inbox)
+    chat_tx = chat.Sender(remote_peer=remotePeer, crypto=user.crypto, outbox=outbox)
+
     chat_rx.run()
     chat_tx.run()
 
@@ -246,11 +258,11 @@ if __name__ == "__main__":
     try:
         # check input arguments
         args, parser = input_argument()
-        if args.username is None or args.port is None or args.host is None:
+        if args.username is None or args.port is None or args.host is None or args.key is None:
             parser.print_help()
             sys.exit()
 
-        local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port}
+        local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port, "keyBase" : args.key}
         if args.remote is None or args.remote == '':
             remote = '130.237.202.97'
         else:
@@ -282,6 +294,9 @@ if __name__ == "__main__":
             connection_manager.remove_user()
             sys.exit(0)
 
+        user = chat.User(localUser=local_user)
+        user.run()
+
         questions = [
             Checkbox('Peers',
                      message='Select a peer to connect to',
@@ -289,7 +304,18 @@ if __name__ == "__main__":
         ]
         answer = prompt(questions)
         peer = answer.get('Peers')[0]
-        wrapper(main_app, peer, local_user)
+
+        print('User selected: {}'.format(peer))
+
+        input()
+        if not user.isInitiator:
+            print('We are initiators')
+            user.set_remote_address(peer.get('ipAddr'))
+            user.force_request()
+
+        print('Established pair keys')
+        input()
+        wrapper(main_app, peer, local_user, user)
     except KeyboardInterrupt as e:
         connection_manager.remove_user()
         pass
