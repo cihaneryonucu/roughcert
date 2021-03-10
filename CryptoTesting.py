@@ -39,5 +39,14 @@ class CryptoTesting(unittest.TestCase):
         private = Crypto.generate_private_key('testKey.pem')
         self.assertNotIsInstance(Crypto.import_certificate('testKey.pem'),Crypto.x509.Certificate)
 
+    # This is to check if the generating CSR works and returns the corresponding class
+    def test_is_csr(self):
+        private = Crypto.generate_private_key('testKey.pem')
+        details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+        csr = Crypto.create_csr(private, details)
+        self.assertIsInstance(csr, Crypto.x509.CertificateSigningRequest)  # Is it a csr?
+
+
+
 if __name__ == '__main__':
     unittest.main()
