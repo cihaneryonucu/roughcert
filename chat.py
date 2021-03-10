@@ -19,6 +19,7 @@ class User(object):
         self.handshake_is_done = 0
         self.remote_address = None
         self.isInitiator = False
+        self.remote_address = None
 
     def set_remote_address(self, address):
         self.remote_address = address
