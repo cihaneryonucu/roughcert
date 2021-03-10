@@ -19,10 +19,10 @@ class User(object):
         self.handshake_is_done = 0
         self.remote_address = None
         self.isInitiator = False
-        self.remote_address = None
+        self.remote_peer_address = None
 
     def set_remote_address(self, address):
-        self.remote_address = address
+        self.remote_peer_address = address
 
     def set_initiator(self):
         self.isInitiator = True
@@ -33,7 +33,7 @@ class User(object):
             self.control_socket.bind('tcp://*:{}'.format(self.control_port))
             message = self.control_socket.recv_string()
             if message == 'HSK':
-                self.crypto = Crypto_Primitives(self.tx_sock,
+                self.crypto = Crypto_Primitives(self.control_socket,
                                             import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
                                             import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
                                             import_certificate('./credentials/CA_cert.pem'))
@@ -44,7 +44,7 @@ class User(object):
         self.control_remote = zmq.Context().instance().socket(zmq.PAIR)
         self.control_remote.connect('tcp://{}:{}'.format(self.remote_peer_address, self.control_port))
         self.control_remote.send_string('HSK')
-        self.crypto = Crypto_Primitives(self.tx_sock,
+        self.crypto = Crypto_Primitives(self.control_socket,
                                         import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
                                         import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
                                         import_certificate('./credentials/CA_cert.pem'))
