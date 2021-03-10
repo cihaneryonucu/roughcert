@@ -1,0 +1,40 @@
+---
+version: 1
+disable_existing_loggers: False
+
+# Configuring the default (root) logger is highly recommended
+root:
+    level: INFO
+    handlers: [fileLogging]
+
+# Configuration for logger set with logging.getLogger(NAME)
+loggers:
+    Base:
+        level: DEBUG
+        handlers: [fileLogging]
+        propagate: no
+    Crypto_Primitives:
+        level: DEBUG
+        handlers: [cryptoLogging]
+        propagate: no
+
+formatters:
+    simple:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+handlers:
+    fileLogging:
+        class: logging.handlers.RotatingFileHandler
+        formatter: simple
+        filename: logging.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 20
+        encoding: utf8
+    cryptoLogging:
+        class: logging.handlers.RotatingFileHandler
+        formatter: simple
+        filename: cryptologging.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 20
+        encoding: utf8
+...

@@ -142,3 +142,12 @@ cython_debug/
 .idea/
 .vscode/launch.json
 .vscode/settings.json
+
+testKey.pem
+<<<<<<< HEAD
+pub
+priv
+=======
+>>>>>>> crypto-testing
+
+testSelfSigned.pem

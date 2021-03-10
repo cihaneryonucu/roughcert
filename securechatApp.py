@@ -1,14 +1,13 @@
-
+import logging
 import curses
 import argparse
 import sys
 import time
 import datetime
-import zmq
-
 from inquirer import Checkbox, prompt
-from protobuf_to_dict import protobuf_to_dict
+import textwrap
 
+from collections import deque
 from queue import SimpleQueue
 import threading
 
@@ -16,69 +15,149 @@ from curses import wrapper
 
 import message_pb2 as pbm
 import chat
-import contacts_pb2 as pbc
+from connectionManager import connection_manager
 
-def certificate_window(window, log):
+
+class Logger:
+ 
+    def __init__(self, filename):
+        self.console = sys.stdout
+        self.file = open(filename, 'w')
+ 
+    def write(self, message):
+        self.console.write(message)
+        self.file.write(message)
+ 
+    def flush(self):
+        self.console.flush()
+        self.file.flush()
+
+def certificate_window(window, log, remotePeer, user):
     window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.box()
     title = " Peer certificate "
-    window.addstr(0, int((window_cols  - len(title)) / 2 + 1), title)
+    window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
+    window.addstr(2, 1, '{}'.format(remotePeer))
+    if user.crypto.peer_cert is not None:
+        window.addstr(3, 1, '{}'.format(user.crypto.peer_cert))
+
+
     window.refresh()
     while True:
-        log.put('Updated certificate')
+        #log.put('Updated certificate')
         time.sleep(10)
-    #Validate Certificate here
+    # Validate Certificate here
 
 def logbook_window(window, log):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 1
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.scrollok(1)
-    #window.box()
+    # window.box()
     title = " Logbook "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
     while True:
         window.addstr(bottom_line, 1, log.get())
-        #window.move(bottom_line, 1)
+        # window.move(bottom_line, 1)
         window.scroll(1)
         window.refresh()
 
-def chat_window(window, log, inbox):
+def sanitize_chat_history(buffer, remotePeer):
+    require_sanitize = 0
+    indexes = []
+    for msg in buffer:
+        if int(datetime.datetime.now().strftime("%s")) * 1000 > msg.message.timestamp_expiration and msg.sender.name == remotePeer.get('username'):
+            indexes.append(buffer.index(msg))
+            require_sanitize = 1
+    return indexes, require_sanitize
+
+def chat_window(window, log, inbox, localUser, remotePeer):
     window_lines, window_cols = window.getmaxyx()
     bottom_line = window_lines - 2
-    window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.scrollok(1)
-    #window.box()
+    # window.box()
     title = " History "
-    window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
+    window.addstr(2, int((window_cols - len(title)) / 2 + 1), title)
     window.refresh()
+
+    message_buffer = []
+    ready_to_print = 0
+
+    sanitized = 0
+    indexes = []
+
+
     while True:
+
+        if sanitized:
+            for index in indexes:
+                del message_buffer[index]
+            window.erase()
+            title = " History "
+            bottom_line = window_lines - 2
+            window.addstr(2, int((window_cols - len(title)) / 2 + 1), title)
+            for message in message_buffer:
+                stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
+                if message.sender.name == localUser.get("username"):
+                    window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
+                else:
+                    window.addstr(bottom_line, 1, stringToAppend)
+                window.scroll(1)
+            window.refresh()
+            sanitized = 0
+            indexes = []
+            
         if inbox.qsize() > 0: #check if we have any incoming message
-            window.addstr(bottom_line, 1, inbox.get())
+            message = pbm.SecureChat()
+            encoded_message = inbox.get()
+            message.ParseFromString(encoded_message)
+            message_buffer.append(message)
+            stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
+            if message.sender.name == localUser.get("username"):
+                window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
+            else:
+                window.addstr(bottom_line, 1, stringToAppend)
             window.scroll(1)
             window.refresh()
             log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
 
+        indexes, sanitized = sanitize_chat_history(message_buffer, remotePeer)
+         
 
 
-def input_window(window, log, outbox, inbox):
+
+def input_window(window, log, outbox, inbox, localUser, remotePeer):
+    window_lines, window_cols = window.getmaxyx()
     window.bkgd(curses.A_NORMAL, curses.color_pair(2))
     window.clear()
     window.box()
-    title = " Input "
-    window.addstr(0, 0, title)
+    title = " Input - User: {}".format(localUser.get("username"))
+    window.addstr(0, int((window_cols - len(title)) / 2), title)
     window.refresh()
     curses.curs_set(1)
+
+    message = pbm.SecureChat()
+
     while True:
         window.clear()
         window.box()
+        title = " Input - User: {} ".format(localUser.get("username"))
+        window.addstr(0, int((window_cols - len(title)) / 2), title)
         window.refresh()
         s = window.getstr(1, 1).decode('utf-8')
         if s is not None and s != "":
-            inbox.put(s)
-            outbox.put(s)
+            message.sender.name = local_user.get('username')
+            message.sender.public_ip = local_user.get('ipAddr')
+            message.recepient.name = remotePeer.get('username')
+            message.recepient.public_ip = remotePeer.get('ipAddr')
+            message.message.message = s
+            message.message.timestamp_generated = int(datetime.datetime.now().strftime("%s")) * 1000 
+            message.message.timestamp_expiration = int(datetime.datetime.now().strftime("%s")) * 1000 + 60 * 1000
+            encodedPb = message.SerializeToString()
+            inbox.put(encodedPb)
+            outbox.put(encodedPb)
             log.put('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
         time.sleep(0.5)
 
@@ -93,10 +172,16 @@ def input_argument():
     parser.add_argument('--host',
                         type=str,
                         help='ip of the host')
-    return parser.parse_args()
+    parser.add_argument('--remote',
+                        type=str,
+                        help='ip of the server')
+    parser.add_argument('--key',
+                        type=str,
+                        help='Specify certificate/key basename')
+    return parser.parse_args(), parser
 
 
-def main_app(stdscr, remotePeer, localUser):
+def main_app(stdscr, remotePeer, localUser, user):
 
     ### curses set up
 
@@ -116,10 +201,10 @@ def main_app(stdscr, remotePeer, localUser):
     v_splitter = int(window_w * 0.65)
     h_l_splitter = int(window_h * 0.5)
 
-    chat_pad = stdscr.subpad(h_splitter, v_splitter, 0, 0)
-    input_pad = stdscr.subpad(window_h - h_splitter, v_splitter, h_splitter, 0)
-    certificate_pad = stdscr.subpad(h_l_splitter, window_w - v_splitter, 0, v_splitter)
-    logbook_pad = stdscr.subpad(window_h - h_l_splitter, window_w - v_splitter, h_l_splitter, v_splitter)
+    chat_pad = curses.newwin(h_splitter, v_splitter, 0, 0)
+    input_pad = curses.newwin(window_h - h_splitter, v_splitter, h_splitter, 0)
+    certificate_pad = curses.newwin(h_l_splitter, window_w - v_splitter, 0, v_splitter)
+    logbook_pad = curses.newwin(window_h - h_l_splitter, window_w - v_splitter, h_l_splitter, v_splitter)
 
 
     #None arguments are for testing
@@ -128,29 +213,33 @@ def main_app(stdscr, remotePeer, localUser):
     outbox = SimpleQueue()
     log = SimpleQueue()
 
-    chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox))
+    chat_history = threading.Thread(target=chat_window, args=(chat_pad, log, inbox, localUser, remotePeer))
     chat_history.daemon = True
     chat_history.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
-    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log))
+    cert_view = threading.Thread(target=certificate_window, args=(certificate_pad, log, remotePeer, user))
     cert_view.daemon = True
     cert_view.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
-    chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox))
+    chat_sender = threading.Thread(target=input_window, args=(input_pad, log, outbox, inbox, localUser, remotePeer))
     chat_sender.daemon = True
     chat_sender.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
     logbook = threading.Thread(target=logbook_window, args=(logbook_pad, log))
     logbook.daemon = True
     logbook.start()
-    time.sleep(0.05)
+    time.sleep(1)
 
-    chat_rx = chat.Receiver(local_chat_address=localUser.get('ipAddr'), local_chat_port=localUser.get('port'), inbox=inbox)
-    chat_tx = chat.Sender(remote_peer_address=remotePeer.get('ipAddr'), remote_peer_port=remotePeer.get('port'), outbox=outbox)
-    
+    # if not user.isInitiator:
+    #     user.set_remote_address(remotePeer.get('ipAddr'))
+    #     user.force_request()
+
+    chat_rx = chat.Receiver(local_user=localUser, crypto=user.crypto, inbox=inbox)
+    chat_tx = chat.Sender(remote_peer=remotePeer, crypto=user.crypto, outbox=outbox)
+
     chat_rx.run()
     chat_tx.run()
 
@@ -159,73 +248,28 @@ def main_app(stdscr, remotePeer, localUser):
     chat_sender.join()
     logbook.join()
 
-class connection_manager(object):
-    def __init__(self, server, local_user=None, port=10040):
-        self.server = server
-        self.port = port
-        self.sock_backend = None
-        self.contactList = []
-        self.local_user = local_user
-
-    def connect(self):
-        self.sock_backend = zmq.Context().instance().socket(zmq.REQ)
-        self.sock_backend.connect('tcp://{}:{}'.format(self.server, self.port))
-
-    def register_user(self):
-        request = pbc.server_action()
-        request.action = 'REG'
-        request.user.username = args.username
-        request.user.ipAddr = args.host
-        request.user.port = int(args.port)
-        request.user.isUp = 'OK'
-        request.requestTime = int(time.time())
-        self.sock_backend.send(request.SerializeToString())
-        print('Sent REG')
-        data = self.sock_backend.recv()
-        resp = pbc.server_action()
-        resp.ParseFromString(data)
-        if resp.action == 'ACK':
-            print('Success')
-            self.local_user = protobuf_to_dict(request.user)
-
-
-    def _unpack_user_list(self, action):
-        userList = []
-        for user in action.contacts.user:
-            user_data = protobuf_to_dict(user)
-            if user_data != {} and user_data != self.local_user:
-                userList.append(user_data)
-        return userList
-
-    def request_users(self):
-        request = pbc.server_action()
-        request.action = 'CTS'
-        self.sock_backend.send(request.SerializeToString())
-        print('Sent CTS')
-        data = self.sock_backend.recv()
-        resp = pbc.server_action()
-        resp.ParseFromString(data)
-        if resp.action == 'ACK':
-            print('Success')
-            self.contactList = self._unpack_user_list(resp)
-
-    def getContactList(self):
-        return self.contactList
-
-    def getLocalUser(self):
-        return self.local_user
 
 
 if __name__ == "__main__":
+    
+    path = 'stdout.log'
+    sys.stdout = Logger(path)
     print(" ---- Secure Chat ----")
     try:
         # check input arguments
-        args = input_argument()
-        if args.username is None:
-            sys.exit('Error - specify an username')
+        args, parser = input_argument()
+        if args.username is None or args.port is None or args.host is None or args.key is None:
+            parser.print_help()
+            sys.exit()
+
+        local_user = {"username" : args.username, "ipAddr" : args.host, "port" : args.port, "keyBase" : args.key}
+        if args.remote is None or args.remote == '':
+            remote = '130.237.202.97'
+        else:
+            remote = args.remote
 
         print("Bootstrap: create contact entry for this user")
-        connection_manager = connection_manager(server='130.237.202.92')
+        connection_manager = connection_manager(server=remote, local_user=local_user)
         connection_manager.connect()
         connection_manager.register_user()
         check_for_peers = [
@@ -239,7 +283,6 @@ if __name__ == "__main__":
 
         while not contactList:
             answer = prompt(check_for_peers)
-            print(answer.get('Check for peers'))
             if answer.get('Check for peers') == ['yes']:
                 connection_manager.request_users()
                 contactList = connection_manager.getContactList()
@@ -248,20 +291,33 @@ if __name__ == "__main__":
 
         if not contactList:
             print("I mean... you gotta be talking to someboby right? bye...")
+            connection_manager.remove_user()
             sys.exit(0)
+
+        user = chat.User(localUser=local_user)
+        user.run()
 
         questions = [
             Checkbox('Peers',
                      message='Select a peer to connect to',
                      choices=contactList)
-            ]
+        ]
         answer = prompt(questions)
-        print(answer)
         peer = answer.get('Peers')[0]
-        print(peer.get('ipAddr'), peer.get('port'))
+
+        print('User selected: {}'.format(peer))
+
         input()
-        wrapper(main_app, peer, connection_manager.getLocalUser())
+        if not user.isInitiator:
+            print('We are initiators')
+            user.set_remote_address(peer.get('ipAddr'))
+            user.force_request()
+
+        print('Established pair keys')
+        input()
+        wrapper(main_app, peer, local_user, user)
     except KeyboardInterrupt as e:
+        connection_manager.remove_user()
         pass
     except:
         raise
