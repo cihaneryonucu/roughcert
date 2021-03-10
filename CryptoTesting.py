@@ -34,5 +34,10 @@ class CryptoTesting(unittest.TestCase):
         cert = Crypto.generate_self_signed_cert(private, 'testSelfSigned.pem', details, 10)
         self.assertIsInstance(Crypto.import_certificate('testSelfSigned.pem'),Crypto.x509.Certificate)
 
+    # This is to test program does not crash if imports cert. Also to assert imported file is always certificate
+    def test_wrong_imported_cert(self):
+        private = Crypto.generate_private_key('testKey.pem')
+        self.assertNotIsInstance(Crypto.import_certificate('testKey.pem'),Crypto.x509.Certificate)
+
 if __name__ == '__main__':
     unittest.main()
