@@ -35,7 +35,12 @@ class CryptoTesting(unittest.TestCase):
         details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
         cert = Crypto.generate_self_signed_cert(private, 'testSelfSigned.pem', details, 10)
         self.assertIsInstance(Crypto.import_certificate('testSelfSigned.pem'), Crypto.x509.Certificate)
-        # Also verify the signature. Verify returns nothing if verified and raises exception if not verified
+
+    # Also verify the signature. Verify returns nothing if verified and raises exception if not verified
+    def test_signature_of_certificate(self):
+        private = Crypto.generate_private_key('testKey.pem')
+        details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+        cert = Crypto.generate_self_signed_cert(private, 'testSelfSigned.pem', details, 10)
         try:
             private.public_key().verify(cert.signature, cert.tbs_certificate_bytes,
                                         Crypto.padding.PKCS1v15(), Crypto.hashes.SHA256())
