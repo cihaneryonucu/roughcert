@@ -210,7 +210,7 @@ class Crypto_Primitives(LogMixin):
 
         #Round 4: Key derivation by collected secrets. Hash first, use the hash for key
         self.logger.info('-----Round 4 starts-----')
-        digest = hashes.Hash(hashes.SHA256())
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
         digest.update(client_secret)
         digest.update(server_secret)
         digest.update(premaster_secret)
