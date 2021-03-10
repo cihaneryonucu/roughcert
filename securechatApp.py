@@ -303,6 +303,7 @@ if __name__ == "__main__":
         peer = answer.get('Peers')[0]
 
         print('User selected: {}'.format(peer))
+
         input()
         if not user.isInitiator:
             print('We are initiators')

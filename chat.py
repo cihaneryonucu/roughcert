@@ -47,7 +47,7 @@ class User(object):
         self.control_remote = zmq.Context().instance().socket(zmq.PAIR)
         self.control_remote.connect('tcp://{}:{}'.format(self.remote_peer_address, self.control_port))
         self.control_remote.send_string('HSK')
-        self.crypto = Crypto_Primitives(self.control_socket,
+        self.crypto = Crypto_Primitives(self.control_remote,
                                         import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
                                         import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
                                         import_certificate('./credentials/CA_cert.pem'))
