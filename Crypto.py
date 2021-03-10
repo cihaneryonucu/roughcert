@@ -146,7 +146,7 @@ class Crypto_Primitives(LogMixin):
         self.session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as value.
         self.fernet = None
 
-    def establish_session_key(self, isClient, target_addr=None, target_port=None):  # if client, you should specify the address and port
+    def establish_session_key(self, isClient):  # if client, you should specify the address and port
         if isClient:
             key = self.__initiate_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
         else:
@@ -168,9 +168,9 @@ class Crypto_Primitives(LogMixin):
         # tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
         tx_sock = self.socket
         # TLS like key derivation: Round 1
-        self.logger.info('-----Round 1 starts-----') 
+        self.logger.info('-----Client Round 1 starts-----')
         client_secret = secrets.token_bytes(16)
-        tx_sock.send_string('hej', flags=zmq.NOBLOCK)
+        tx_sock.send_string('hej')
         tx_sock.send(client_secret, flags=zmq.NOBLOCK)
         self.logger.info('-----Round 1 ends-----')
         
@@ -247,7 +247,7 @@ class Crypto_Primitives(LogMixin):
         rx_sock = self.socket
 
         # Round 1 listen
-        self.logger.info('-----Round 1 starts-----')
+        self.logger.info('----- Server Round 1 starts-----')
         client_hey = rx_sock.recv()
         client_secret = rx_sock.recv()
         self.logger.info('-----Round 1 ends-----')

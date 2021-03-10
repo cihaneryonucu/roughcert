@@ -38,9 +38,11 @@ def certificate_window(window, log, remotePeer):
     window.box()
     title = " Peer certificate "
     window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
+    window.addstr(2, 1, '{}'.format(remotePeer))
+
     window.refresh()
     while True:
-        log.put('Updated certificate')
+        #log.put('Updated certificate')
         time.sleep(10)
     # Validate Certificate here
 
@@ -176,7 +178,7 @@ def input_argument():
     return parser.parse_args(), parser
 
 
-def main_app(stdscr, remotePeer, localUser):
+def main_app(stdscr, remotePeer, localUser, user):
 
     ### curses set up
 
@@ -228,9 +230,13 @@ def main_app(stdscr, remotePeer, localUser):
     logbook.start()
     time.sleep(1)
 
-    chat_rx = chat.Receiver(local_chat_address=localUser.get('ipAddr'), local_chat_port=localUser.get('port'), inbox=inbox)
-    chat_tx = chat.Sender(remote_peer_address=remotePeer.get('ipAddr'), remote_peer_port=remotePeer.get('port'), outbox=outbox)
-     
+    if not user.isInitiator:
+        user.set_remote_address(remotePeer.get('ipAddr'))
+        user.force_request()
+
+    chat_rx = chat.Receiver(local_user=localUser, crypto=user.crypto, inbox=inbox)
+    chat_tx = chat.Sender(remote_peer=localUser, crypto=user.crypto, outbox=outbox)
+
     chat_rx.run()
     chat_tx.run()
 
@@ -285,6 +291,9 @@ if __name__ == "__main__":
             connection_manager.remove_user()
             sys.exit(0)
 
+        user = chat.User(localUser=local_user)
+        user.run()
+
         questions = [
             Checkbox('Peers',
                      message='Select a peer to connect to',
@@ -292,7 +301,10 @@ if __name__ == "__main__":
         ]
         answer = prompt(questions)
         peer = answer.get('Peers')[0]
-        wrapper(main_app, peer, local_user)
+
+        input()
+
+        wrapper(main_app, peer, local_user, user)
     except KeyboardInterrupt as e:
         connection_manager.remove_user()
         pass
