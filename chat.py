@@ -38,6 +38,9 @@ class User(object):
                                             import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
                                             import_certificate('./credentials/CA_cert.pem'))
                 self.crypto.establish_session_key(False)
+                self.control_socket.send('ACK')
+            elif message == 'ACK': # for the initiator to kill this thread
+                pass
             self.isInitiator = True
 
     def force_request(self):
