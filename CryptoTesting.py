@@ -71,6 +71,33 @@ class CryptoTesting(unittest.TestCase):
         # And not CSR anymore...
         self.assertNotIsInstance(signed_csr, Crypto.x509.CertificateSigningRequest)
 
+    # This test check the signature and verification of the freshly signed csr.
+    # Difference with signature tester is, here we sign certificate with another key like we do in the key derivation
+    # and verify that signature.
+    def test_signature_on_signed_csr(self):
+
+        # Generate the first set of key.
+        CA_private = Crypto.generate_private_key('testKey.pem')
+        details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+        CA_cert = Crypto.generate_self_signed_cert(CA_private, 'testSelfSigned.pem', details, 10)
+        # Generate the second set of keys
+        private = Crypto.generate_private_key('testKey.pem')
+        details = {'country': 'Se', 'region': 'Skane', 'city': 'stockholm', 'org': 'someCo', 'hostname': 'somesite.com'}
+        # Create and sign csr with the first key.
+        csr = Crypto.create_csr(private, details)
+        signed_csr = Crypto.sign_csr(csr, CA_cert, CA_private, 10)
+
+        # Now signed csr is certificate but not the same cert.
+        self.assertNotEqual(signed_csr.serial_number, CA_cert.serial_number)
+
+        # Now verify the signature
+        try:
+            CA_private.public_key().verify(signed_csr.signature, signed_csr.tbs_certificate_bytes,
+                                           Crypto.padding.PKCS1v15(), Crypto.hashes.SHA256())
+
+        except Crypto.cryptography.exceptions.InvalidSignature:
+            self.fail('Verification of signature failed')
+
 
 if __name__ == '__main__':
     unittest.main()
