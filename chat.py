@@ -68,7 +68,7 @@ class Sender(object):
 
     def connect(self):
         self.tx_sock = zmq.Context().instance().socket(zmq.PAIR)
-        self.tx_sock.connect('tcp://{}:{}'.format(self.remotePeer.get('ipAddr'), self.remotePeer.get('port')))
+        self.tx_sock.connect('tcp://{}:{}'.format(self.remote_peer.get('ipAddr'), self.remote_peer.get('port')))
        
         
     def receive_message(self):
@@ -91,14 +91,14 @@ class Sender(object):
 
 class Receiver(object):
     def __init__(self, crypto, local_user, inbox):
-        self.localUser = local_user
+        self.local_user = local_user
         self.rx_sock = None
         self.inbox = inbox
         self.crypto = crypto
 
     def connect(self):
         self.rx_sock = zmq.Context().instance().socket(zmq.PAIR)
-        self.rx_sock.bind('tcp://{}:{}'.format(self.localUser.get('ipAddr'), self.localUser.get('port')))
+        self.rx_sock.bind('tcp://{}:{}'.format(self.local_user.get('ipAddr'), self.local_user.get('port')))
 
 
     def receiver_loop(self):
