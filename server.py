@@ -90,7 +90,7 @@ class Server(LogMixin):
 
     def n_ack_to_request(self):
         reply = cpb.server_action()
-        self.logger.ERROR('Cannot ACK request')
+        self.logger.error('Cannot ACK request')
         reply.action = 'NACK'
         reply.result = 'Malformed request'
         return reply
@@ -106,7 +106,7 @@ class Server(LogMixin):
             reply = self.ack_to_request()
         else:
             reply = self.n_ack_to_request()
-            self.logger.ERROR("Request malformed - nothing to do")
+            self.logger.error("Request malformed - nothing to do")
         return reply
 
     def run(self):
@@ -129,7 +129,7 @@ def input_argument():
     parser = argparse.ArgumentParser(description='Secure Chat backend')
     parser.add_argument('--port',
                         type=int,
-                        help='Backend port (def: 10000')
+                        help='Backend port (def: 10050')
     return parser.parse_args()
 
 if __name__ == '__main__':
