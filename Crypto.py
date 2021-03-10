@@ -170,7 +170,7 @@ class Crypto_Primitives(LogMixin):
         # TLS like key derivation: Round 1
         self.logger.info('-----Client Round 1 starts-----')
         client_secret = secrets.token_bytes(16)
-        tx_sock.send_string('hej')
+        tx_sock.send_string('hej', flags=zmq.NOBLOCK)
         tx_sock.send(client_secret, flags=zmq.NOBLOCK)
         self.logger.info('-----Round 1 ends-----')
         

@@ -230,9 +230,9 @@ def main_app(stdscr, remotePeer, localUser, user):
     logbook.start()
     time.sleep(1)
 
-    if not user.isInitiator:
-        user.set_remote_address(remotePeer.get('ipAddr'))
-        user.force_request()
+    # if not user.isInitiator:
+    #     user.set_remote_address(remotePeer.get('ipAddr'))
+    #     user.force_request()
 
     chat_rx = chat.Receiver(local_user=localUser, crypto=user.crypto, inbox=inbox)
     chat_tx = chat.Sender(remote_peer=localUser, crypto=user.crypto, outbox=outbox)
@@ -302,8 +302,15 @@ if __name__ == "__main__":
         answer = prompt(questions)
         peer = answer.get('Peers')[0]
 
+        print('User selected: {}'.format(peer))
         input()
+        if not user.isInitiator:
+            print('We are initiators')
+            user.set_remote_address(peer.get('ipAddr'))
+            user.force_request()
 
+        print('Established pair keys')
+        input()
         wrapper(main_app, peer, local_user, user)
     except KeyboardInterrupt as e:
         connection_manager.remove_user()
