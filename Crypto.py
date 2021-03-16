@@ -17,7 +17,7 @@ import base64
 from LogMixin import LogMixin
 
 
-def generate_private_key(filename):
+def generate_private_key(filename, password='password'):
     # Gen private key, n=65537, 2048 keysize
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
 
@@ -27,7 +27,7 @@ def generate_private_key(filename):
             key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.BestAvailableEncryption(b"password")  # todo: Change this with param
+                encryption_algorithm=serialization.BestAvailableEncryption(bytes(password, 'utf-8'))
             )
         )
 
@@ -331,6 +331,7 @@ class Crypto_Primitives(LogMixin):
             self.logger.info('Problem with the derived key')
             return None
 
+generate_private_key('a')
 # For testing uncomment below and run as:
 # server:python3 Crypto.py s [local_address] [local_port] - for example: python3 Crypto.py s 127.0.0.1 1111
 # client:python3 Crypto.py c [target_address] [target_port] - for example: python3 Crypto.py c 127.0.0.1 1111
