@@ -32,7 +32,7 @@ class User(LogMixin):
             self.control_socket.bind('tcp://*:{}'.format(self.control_port))
             message = self.control_socket.recv_string()
             if message == 'HSK':
-                self.logger.waring('We are not initiators - Configure key exchange side as server')
+                self.logger.warning('We are not initiators - Configure key exchange side as server')
                 self.crypto = Crypto_Primitives(self.control_socket,
                                             import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
                                             import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
@@ -40,12 +40,12 @@ class User(LogMixin):
                 self.crypto.establish_session_key(False)
                 self.control_socket.send_string('ACK')
             elif message == 'ACK': # for the initiator to kill this thread
-                self.logger.waring('We are initiators - Configure key exchange side as client')
+                self.logger.warning('We are initiators - Configure key exchange side as client')
                 pass
             self.isInitiator = True
 
     def force_request(self):
-        self.logger.waring('Send request to define roles')
+        self.logger.warning('Send request to define roles')
         self.control_remote = zmq.Context().instance().socket(zmq.PAIR)
         self.control_remote.connect('tcp://{}:{}'.format(self.remote_peer_address, self.control_port))
         self.control_remote.send_string('HSK')
