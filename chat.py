@@ -19,9 +19,11 @@ class User(object, LogMixin):
         self.remote_peer_address = None
 
     def set_remote_address(self, address):
+        self.logger.info("Setting remote peer address")
         self.remote_peer_address = address
 
     def set_initiator(self):
+        self.logger.warning('We are initiators - initiating key exchange process')
         self.isInitiator = True
 
     def handshake(self):
@@ -30,6 +32,7 @@ class User(object, LogMixin):
             self.control_socket.bind('tcp://*:{}'.format(self.control_port))
             message = self.control_socket.recv_string()
             if message == 'HSK':
+                self.logger.waring('We are not initiators - Configure key exchange side as server')
                 self.crypto = Crypto_Primitives(self.control_socket,
                                             import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
                                             import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
@@ -37,10 +40,12 @@ class User(object, LogMixin):
                 self.crypto.establish_session_key(False)
                 self.control_socket.send_string('ACK')
             elif message == 'ACK': # for the initiator to kill this thread
+                self.logger.waring('We are initiators - Configure key exchange side as client')
                 pass
             self.isInitiator = True
 
     def force_request(self):
+        self.logger.waring('Send request to define roles')
         self.control_remote = zmq.Context().instance().socket(zmq.PAIR)
         self.control_remote.connect('tcp://{}:{}'.format(self.remote_peer_address, self.control_port))
         self.control_remote.send_string('HSK')
@@ -53,6 +58,7 @@ class User(object, LogMixin):
     def run(self):
         thread = threading.Thread(target=self.handshake)
         thread.daemon = True
+        self.logger.info('Start User Crypto key establishment handshake')
         thread.start()
 
 
@@ -64,6 +70,7 @@ class Sender(object, LogMixin):
         self.crypto = crypto
 
     def connect(self):
+        self.logger.info('Connect to point-2-point remote peer socket at {}'.format(self.remote_peer))
         self.tx_sock = zmq.Context().instance().socket(zmq.PAIR)
         self.tx_sock.connect('tcp://{}:{}'.format(self.remote_peer.get('ipAddr'), self.remote_peer.get('port')))
 
@@ -93,6 +100,7 @@ class Receiver(object, LogMixin):
         self.crypto = crypto
 
     def connect(self):
+        self.logger.info('Create point-2-point local peer socket at {}'.format(self.local_user))
         self.rx_sock = zmq.Context().instance().socket(zmq.PAIR)
         self.rx_sock.bind('tcp://{}:{}'.format(self.local_user.get('ipAddr'), self.local_user.get('port')))
 
