@@ -130,10 +130,10 @@ def import_certificate(filename):  # Cert containing public key. This is directl
     return cert
 
 
-def import_private_key(filename):
+def import_private_key(filename, password='password'):
     key_file = open(filename, "rb")
     try:
-        private_key = serialization.load_pem_private_key(key_file.read(), b'password',
+        private_key = serialization.load_pem_private_key(key_file.read(), bytes(password, 'utf-8'),
                                                          default_backend())  # todo: replace password with getpass().encode("utf-8")
     except ValueError:
         print('This is not a pem private key')
