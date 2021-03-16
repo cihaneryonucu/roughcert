@@ -74,9 +74,6 @@ class Sender(object, LogMixin):
         self.tx_sock = zmq.Context().instance().socket(zmq.PAIR)
         self.tx_sock.connect('tcp://{}:{}'.format(self.remote_peer.get('ipAddr'), self.remote_peer.get('port')))
 
-    def receive_message(self):
-        self.tx_sock.recv()
-
     def sender_loop(self):
         while True:
             message = self.crypto.encrypt(self.outbox_queue.get())
