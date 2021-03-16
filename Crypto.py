@@ -174,13 +174,7 @@ class CryptoPrimitives(LogMixin):
     def __initiate_key_derivation(self, client_private_key, client_cert, CA_pub_key):
 
         tx_sock = self.__socket
-        # TLS like key derivation: Round 1
-        self.logger.info('-----Client Round 1 starts-----')
-        secret_byte_size = 16
-        client_secret = secrets.token_bytes(secret_byte_size)
-        tx_sock.send_string('hej', flags=zmq.NOBLOCK)
-        tx_sock.send(client_secret, flags=zmq.NOBLOCK)
-        self.logger.info('-----Round 1 ends-----')
+        client_secret, secret_byte_size = self.__client_round_1(tx_sock)
 
         # Round 2 listen
         self.logger.info('-----Round 2 starts-----')
@@ -247,6 +241,16 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __client_round_1(self, tx_sock):
+        # TLS like key derivation: Round 1
+        self.logger.info('-----Client Round 1 starts-----')
+        secret_byte_size = 16
+        client_secret = secrets.token_bytes(secret_byte_size)
+        tx_sock.send_string('hej', flags=zmq.NOBLOCK)
+        tx_sock.send(client_secret, flags=zmq.NOBLOCK)
+        self.logger.info('-----Round 1 ends-----')
+        return client_secret, secret_byte_size
 
     def __listen_key_derivation(self, server_private_key, server_cert, CA_pub_key):
         rx_sock = self.__socket
