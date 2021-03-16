@@ -204,17 +204,7 @@ class CryptoPrimitives(LogMixin):
         if premaster_secret is None:
             return None
 
-        # Round 4: Key derivation by collected secrets. Hash first, use the hash for key
-        self.logger.info('-----Round 4 starts-----')
-        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-        digest.update(client_secret)
-        digest.update(server_secret)
-        digest.update(premaster_secret)
-        key = digest.finalize()
-
-        key = base64.urlsafe_b64encode(key)
-        fernet = Fernet(key)
-        self.logger.info('-----Round 4 ends-----')
+        fernet, key = self.__server_round_4(client_secret, premaster_secret, server_secret)
 
         # Round 5: Finalize by sending a message
         self.logger.info('-----Round 5 starts-----')
@@ -232,6 +222,19 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __server_round_4(self, client_secret, premaster_secret, server_secret):
+        # Round 4: Key derivation by collected secrets. Hash first, use the hash for key
+        self.logger.info('-----Round 4 starts-----')
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        digest.update(client_secret)
+        digest.update(server_secret)
+        digest.update(premaster_secret)
+        key = digest.finalize()
+        key = base64.urlsafe_b64encode(key)
+        fernet = Fernet(key)
+        self.logger.info('-----Round 4 ends-----')
+        return fernet, key
 
     def __server_round_3(self, CA_pub_key, rx_sock, server_private_key):
         # Round 3: Recieve client cert, signed and encrpyted secret and verify them
