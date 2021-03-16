@@ -179,17 +179,8 @@ class CryptoPrimitives(LogMixin):
         server_cert, server_secret = self.__client_round_2(CA_pub_key, tx_sock)
         if server_cert is None:
             return None
-        # Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
-        self.logger.info('-----Round 3 starts-----')
-        premaster_secret = secrets.token_bytes(secret_byte_size)
-
-        premaster_secret_encrypted = server_cert.public_key().encrypt(premaster_secret, padding.PKCS1v15())
-        premaster_secret_signed = client_private_key.sign(premaster_secret, padding.PKCS1v15(), hashes.SHA256())
-
-        tx_sock.send(premaster_secret_encrypted, flags=zmq.NOBLOCK)
-        tx_sock.send(premaster_secret_signed, flags=zmq.NOBLOCK)
-        tx_sock.send(client_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
-        self.logger.info('-----Round 3 ends-----')
+        premaster_secret = self.__client_round_3(client_cert, client_private_key, secret_byte_size, server_cert,
+                                                 tx_sock)
 
         # Round 4: Key derivation by collected secrets. Hash first, use the hash for key
         self.logger.info('-----Round 4 starts-----')
@@ -219,6 +210,18 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __client_round_3(self, client_cert, client_private_key, secret_byte_size, server_cert, tx_sock):
+        # Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
+        self.logger.info('-----Round 3 starts-----')
+        premaster_secret = secrets.token_bytes(secret_byte_size)
+        premaster_secret_encrypted = server_cert.public_key().encrypt(premaster_secret, padding.PKCS1v15())
+        premaster_secret_signed = client_private_key.sign(premaster_secret, padding.PKCS1v15(), hashes.SHA256())
+        tx_sock.send(premaster_secret_encrypted, flags=zmq.NOBLOCK)
+        tx_sock.send(premaster_secret_signed, flags=zmq.NOBLOCK)
+        tx_sock.send(client_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
+        self.logger.info('-----Round 3 ends-----')
+        return premaster_secret
 
     def __client_round_2(self, CA_pub_key, tx_sock):
         # Round 2 listen
