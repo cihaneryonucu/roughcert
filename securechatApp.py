@@ -18,27 +18,15 @@ import chat
 from connectionManager import connection_manager
 
 
-class Logger:
- 
-    def __init__(self, filename):
-        self.console = sys.stdout
-        self.file = open(filename, 'w')
- 
-    def write(self, message):
-        self.console.write(message)
-        self.file.write(message)
- 
-    def flush(self):
-        self.console.flush()
-        self.file.flush()
-
 class secure_chat_UI(LogMixin):
     def __init__(self, local_peer, remote_peer, crypto_info):
         self.local_peer = local_peer
         self.remote_peer = remote_peer
         self.crypto_info = crypto_info
+        self.logger.debug("Started Main Window")
 
     def certificate_window(self, window):
+        self.logger.info("Started certificate Window")
         window_lines, window_cols = window.getmaxyx()
         window.bkgd(curses.A_NORMAL, curses.color_pair(2))
         window.box()
@@ -46,6 +34,7 @@ class secure_chat_UI(LogMixin):
         window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
         window.addstr(2, 1, '{}'.format(self.remote_peer))
         if user.crypto.peer_cert is not None:
+            self.logger.debug("Updated window with certificate from user: {}".format(self.crypto_info.user.peer_cert))
             window.addstr(3, 1, '{}'.format(self.crypto_info.crypto.peer_cert))
         window.refresh()
         while True:
@@ -54,6 +43,7 @@ class secure_chat_UI(LogMixin):
         # Validate Certificate here
 
     def logbook_window(self, window, log):
+        self.logger.info("Started logging Window")
         window_lines, window_cols = window.getmaxyx()
         bottom_line = window_lines - 1
         window.bkgd(curses.A_NORMAL, curses.color_pair(2))
@@ -63,6 +53,7 @@ class secure_chat_UI(LogMixin):
         window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
         window.refresh()
         while True:
+            self.logger.debug("Added Message to logbook")
             window.addstr(bottom_line, 1, log.get())
             # window.move(bottom_line, 1)
             window.scroll(1)
@@ -74,10 +65,12 @@ class secure_chat_UI(LogMixin):
         for msg in buffer:
             if int(datetime.datetime.now().strftime("%s")) * 1000 > msg.message.timestamp_expiration and msg.sender.name == self.remote_peer.get('username'):
                 indexes.append(buffer.index(msg))
+                self.logger.warning('Found messages that require sanitize at {}'.format(buffer.index(msg)))
                 require_sanitize = 1
         return indexes, require_sanitize
 
     def chat_window(self, window, log, inbox):
+        self.logger.info("Started chat window")
         window_lines, window_cols = window.getmaxyx()
         bottom_line = window_lines - 2
         window.scrollok(1)
@@ -90,6 +83,7 @@ class secure_chat_UI(LogMixin):
         indexes = []
         while True:
             if sanitized:
+                self.logger.warning("Sanitization required - removing messages from buffer")
                 for index in indexes:
                     del message_buffer[index]
                 window.erase()
@@ -113,8 +107,10 @@ class secure_chat_UI(LogMixin):
                 stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
                 if message.sender.name == self.local_peer.get("username"):
                     window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
+                    self.logger.debug("We received a message from the peer")
                 else:
                     window.addstr(bottom_line, 1, stringToAppend)
+                    self.logger.debug("We sent a message - appending it here for history")
                 window.scroll(1)
                 window.refresh()
                 log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
@@ -122,6 +118,7 @@ class secure_chat_UI(LogMixin):
             indexes, sanitized = self.sanitize_chat_history(message_buffer)
 
     def input_window(self, window, log, outbox, inbox):
+        self.logger.info("Starting the user input window")
         window_lines, window_cols = window.getmaxyx()
         window.bkgd(curses.A_NORMAL, curses.color_pair(2))
         window.clear()
@@ -141,6 +138,7 @@ class secure_chat_UI(LogMixin):
             window.refresh()
             s = window.getstr(1, 1).decode('utf-8')
             if s is not None and s != "":
+                self.logger.debug("Preparing message for sending...")
                 message.sender.name = local_user.get('username')
                 message.sender.public_ip = local_user.get('ipAddr')
                 message.recepient.name = self.remote_peer.get('username')
@@ -152,6 +150,7 @@ class secure_chat_UI(LogMixin):
                 inbox.put(encodedPb)
                 outbox.put(encodedPb)
                 log.put('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
+                self.logger.debug("Message put in the outbox queue")
             time.sleep(0.5)
 
     def main_app(self, stdscr):
@@ -233,8 +232,6 @@ def input_argument():
 
 if __name__ == "__main__":
     
-    path = 'stdout.log'
-    sys.stdout = Logger(path)
     print(" ---- Secure Chat ----")
     try:
         # check input arguments
