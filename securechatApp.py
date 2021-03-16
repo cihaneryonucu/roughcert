@@ -167,26 +167,6 @@ def input_window(window, log, outbox, inbox, localUser, remotePeer):
             log.put('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
         time.sleep(0.5)
 
-def input_argument():
-    parser = argparse.ArgumentParser(description='Secure Chat client with message self destruct')
-    parser.add_argument('--username',
-                        type=str,
-                        help='Username of sender')
-    parser.add_argument('--port',
-                        type=str,
-                        help='port of sender')
-    parser.add_argument('--host',
-                        type=str,
-                        help='ip of the host')
-    parser.add_argument('--remote',
-                        type=str,
-                        help='ip of the server')
-    parser.add_argument('--key',
-                        type=str,
-                        help='Specify certificate/key basename')
-    return parser.parse_args(), parser
-
-
 def main_app(stdscr, remotePeer, localUser, user):
 
     ### curses set up
@@ -254,7 +234,24 @@ def main_app(stdscr, remotePeer, localUser, user):
     chat_sender.join()
     logbook.join()
 
-
+def input_argument():
+    parser = argparse.ArgumentParser(description='Secure Chat client with message self destruct')
+    parser.add_argument('--username',
+                        type=str,
+                        help='Username of sender')
+    parser.add_argument('--port',
+                        type=str,
+                        help='port of sender')
+    parser.add_argument('--host',
+                        type=str,
+                        help='ip of the host')
+    parser.add_argument('--remote',
+                        type=str,
+                        help='ip of the server')
+    parser.add_argument('--key',
+                        type=str,
+                        help='Specify certificate/key basename')
+    return parser.parse_args(), parser
 
 if __name__ == "__main__":
     
