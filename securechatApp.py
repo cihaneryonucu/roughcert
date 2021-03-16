@@ -300,7 +300,8 @@ if __name__ == "__main__":
 
         print('Established pair keys')
         input()
-        wrapper(main_app, peer, local_user, user)
+        app = secure_chat_UI(local_peer=local_user, remote_peer=peer, crypto_info=user)
+        secure_chat_UI.launch()
     except KeyboardInterrupt as e:
         connection_manager.remove_user()
         pass
