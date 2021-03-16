@@ -147,12 +147,13 @@ def export_cert(filename, cert):
 
 class CryptoPrimitives(LogMixin):
     def __init__(self, socket, private_key, cert, CA_pub_key):
-        self.socket = socket
+        self.__socket = socket
         self.__private_key = private_key
         self.cert = cert
         self.CA_pub_key = CA_pub_key
-        self.session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as value.
-        self.fernet = None
+        self.__session_key = None  # Can be a Dict: They should be filled with username as key and symmetric key as
+        # value.
+        self.__fernet = None
         self.peer_cert = None
 
     def establish_session_key(self, isClient):  # if client, you should specify the address and port
@@ -161,18 +162,18 @@ class CryptoPrimitives(LogMixin):
         else:
             key = self.__listen_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
 
-        self.fernet = Fernet(key)
-        self.session_key = key
+        self.__fernet = Fernet(key)
+        self.__session_key = key
 
     def encrypt(self, message):  # Message type is byte
-        return self.fernet.encrypt(message)
+        return self.__fernet.encrypt(message)
 
     def decrypt(self, ciphertext):
-        return self.fernet.decrypt(ciphertext)
+        return self.__fernet.decrypt(ciphertext)
 
     def __initiate_key_derivation(self, client_private_key, client_cert, CA_pub_key):
 
-        tx_sock = self.socket
+        tx_sock = self.__socket
         # TLS like key derivation: Round 1
         self.logger.info('-----Client Round 1 starts-----')
         secret_byte_size = 16
@@ -248,7 +249,7 @@ class CryptoPrimitives(LogMixin):
             return None
 
     def __listen_key_derivation(self, server_private_key, server_cert, CA_pub_key):
-        rx_sock = self.socket
+        rx_sock = self.__socket
 
         # Round 1 listen
         self.logger.info('----- Server Round 1 starts-----')
