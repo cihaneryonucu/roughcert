@@ -178,7 +178,8 @@ class Crypto_Primitives(LogMixin):
         tx_sock = self.socket
         # TLS like key derivation: Round 1
         self.logger.info('-----Client Round 1 starts-----')
-        client_secret = secrets.token_bytes(16)
+        secret_byte_size = 16
+        client_secret = secrets.token_bytes(secret_byte_size)
         tx_sock.send_string('hej', flags=zmq.NOBLOCK)
         tx_sock.send(client_secret, flags=zmq.NOBLOCK)
         self.logger.info('-----Round 1 ends-----')
@@ -210,7 +211,7 @@ class Crypto_Primitives(LogMixin):
         self.logger.info('-----Round 2 ends-----')
         # Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
         self.logger.info('-----Round 3 starts-----')
-        premaster_secret = secrets.token_bytes(16)
+        premaster_secret = secrets.token_bytes(secret_byte_size)
 
         premaster_secret_encrypted = server_cert.public_key().encrypt(premaster_secret, padding.PKCS1v15())
         premaster_secret_signed = client_private_key.sign(premaster_secret, padding.PKCS1v15(), hashes.SHA256())
