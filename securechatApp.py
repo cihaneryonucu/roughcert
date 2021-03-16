@@ -5,7 +5,7 @@ import sys
 import time
 import datetime
 from inquirer import Checkbox, prompt
-import textwrap
+from LogMixin import LogMixin
 
 from collections import deque
 from queue import SimpleQueue
@@ -31,6 +31,12 @@ class Logger:
     def flush(self):
         self.console.flush()
         self.file.flush()
+
+class secure_chat_UI(LogMixin):
+    def __init__(self, local_peer, remote_peer):
+        self.local_peer = local_peer
+        self.remote_peer = remote_peer
+
 
 def certificate_window(window, log, remotePeer, user):
     window_lines, window_cols = window.getmaxyx()
