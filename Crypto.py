@@ -4,7 +4,6 @@ import zmq
 import sys
 import copy
 import secrets
-# from pyroughtime import RoughtimeClient, RoughtimeServer
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -134,7 +133,7 @@ def import_private_key(filename, password='password'):
     key_file = open(filename, "rb")
     try:
         private_key = serialization.load_pem_private_key(key_file.read(), bytes(password, 'utf-8'),
-                                                         default_backend())  # todo: replace password with getpass().encode("utf-8")
+                                                         default_backend())
     except ValueError:
         print('This is not a pem private key')
         return None
@@ -172,9 +171,7 @@ class Crypto_Primitives(LogMixin):
         return self.fernet.decrypt(ciphertext)
 
     def __initiate_key_derivation(self, client_private_key, client_cert, CA_pub_key):
-        # Connect
-        # tx_sock = zmq.Context().instance().socket(zmq.PAIR)
-        # tx_sock.connect('tcp://{}:{}'.format(target_addr, target_port))
+
         tx_sock = self.socket
         # TLS like key derivation: Round 1
         self.logger.info('-----Client Round 1 starts-----')
@@ -251,10 +248,6 @@ class Crypto_Primitives(LogMixin):
             return None
 
     def __listen_key_derivation(self, server_private_key, server_cert, CA_pub_key):
-        # Connect
-        # rx_sock = zmq.Context().instance().socket(zmq.PAIR)
-        # rx_sock.bind('tcp://{}:{}'.format(addr, port))
-
         rx_sock = self.socket
 
         # Round 1 listen
@@ -310,7 +303,6 @@ class Crypto_Primitives(LogMixin):
         digest.update(server_secret)
         digest.update(premaster_secret)
         key = digest.finalize()
-        # self.logger.info(key)
 
         key = base64.urlsafe_b64encode(key)
         fernet = Fernet(key)
