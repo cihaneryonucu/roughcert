@@ -206,15 +206,7 @@ class CryptoPrimitives(LogMixin):
 
         fernet, key = self.__server_round_4(client_secret, premaster_secret, server_secret)
 
-        # Round 5: Finalize by sending a message
-        self.logger.info('-----Round 5 starts-----')
-
-        finalize_server = b"Finalize!"
-        ct_finalize_server = fernet.encrypt(finalize_server)
-        rx_sock.send(ct_finalize_server, flags=zmq.NOBLOCK)
-
-        ct_finalize_client = rx_sock.recv()
-        finalize_client = fernet.decrypt(ct_finalize_client)
+        finalize_client, finalize_server = self.__server_round_5(fernet, rx_sock)
 
         if finalize_client == finalize_server:
             self.logger.info('Finalized')
@@ -222,6 +214,16 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __server_round_5(self, fernet, rx_sock):
+        # Round 5: Finalize by sending a message
+        self.logger.info('-----Round 5 starts-----')
+        finalize_server = b"Finalize!"
+        ct_finalize_server = fernet.encrypt(finalize_server)
+        rx_sock.send(ct_finalize_server, flags=zmq.NOBLOCK)
+        ct_finalize_client = rx_sock.recv()
+        finalize_client = fernet.decrypt(ct_finalize_client)
+        return finalize_client, finalize_server
 
     def __server_round_4(self, client_secret, premaster_secret, server_secret):
         # Round 4: Key derivation by collected secrets. Hash first, use the hash for key
