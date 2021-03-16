@@ -200,32 +200,9 @@ class CryptoPrimitives(LogMixin):
 
         server_secret = self.__server_round_2(rx_sock, server_cert, server_private_key)
 
-        # Round 3: Recieve client cert, signed and encrpyted secret and verify them
-        self.logger.info('-----Round 3 starts-----')
-        premaster_secret_encrypted = rx_sock.recv()
-        premaster_secret_signed = rx_sock.recv()
-        client_cert_raw = rx_sock.recv()
-
-        client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
-        self.peer_cert = client_cert
-
-        premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
-
-        try:
-            CA_pub_key.public_key().verify(client_cert.signature, client_cert.tbs_certificate_bytes, padding.PKCS1v15(),
-                                           hashes.SHA256())
-            self.logger.info('Client certificate verified.')
-        except cryptography.exceptions.InvalidSignature:
-            self.logger.info("Certificate verification failed, invalid CA or certificate")
-            # return None
-        try:
-            client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(),
-                                            hashes.SHA256())
-            self.logger.info('Premaster signature verified.')
-        except cryptography.exceptions.InvalidSignature:
-            self.logger.info("Premaster signature verification failed, invalid key or signature")
-            # return None
-        self.logger.info('-----Round 3 ends-----')
+        premaster_secret = self.__server_round_3(CA_pub_key, rx_sock, server_private_key)
+        if premaster_secret is None:
+            return None
 
         # Round 4: Key derivation by collected secrets. Hash first, use the hash for key
         self.logger.info('-----Round 4 starts-----')
@@ -255,6 +232,32 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __server_round_3(self, CA_pub_key, rx_sock, server_private_key):
+        # Round 3: Recieve client cert, signed and encrpyted secret and verify them
+        self.logger.info('-----Round 3 starts-----')
+        premaster_secret_encrypted = rx_sock.recv()
+        premaster_secret_signed = rx_sock.recv()
+        client_cert_raw = rx_sock.recv()
+        client_cert = x509.load_pem_x509_certificate(client_cert_raw, default_backend())
+        self.peer_cert = client_cert
+        premaster_secret = server_private_key.decrypt(premaster_secret_encrypted, padding.PKCS1v15())
+        try:
+            CA_pub_key.public_key().verify(client_cert.signature, client_cert.tbs_certificate_bytes, padding.PKCS1v15(),
+                                           hashes.SHA256())
+            self.logger.info('Client certificate verified.')
+        except cryptography.exceptions.InvalidSignature:
+            self.logger.info("Certificate verification failed, invalid CA or certificate")
+            return None
+        try:
+            client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(),
+                                            hashes.SHA256())
+            self.logger.info('Premaster signature verified.')
+        except cryptography.exceptions.InvalidSignature:
+            self.logger.info("Premaster signature verification failed, invalid key or signature")
+            return None
+        self.logger.info('-----Round 3 ends-----')
+        return premaster_secret
 
     def __server_round_2(self, rx_sock, server_cert, server_private_key):
         # Round 2 send cert, response and secret
