@@ -86,11 +86,9 @@ class secure_chat_UI(LogMixin):
         window.addstr(2, int((window_cols - len(title)) / 2 + 1), title)
         window.refresh()
         message_buffer = []
-        ready_to_print = 0
         sanitized = 0
         indexes = []
         while True:
-
             if sanitized:
                 for index in indexes:
                     del message_buffer[index]
@@ -106,8 +104,6 @@ class secure_chat_UI(LogMixin):
                         window.addstr(bottom_line, 1, stringToAppend)
                     window.scroll(1)
                 window.refresh()
-                sanitized = 0
-                indexes = []
 
             if inbox.qsize() > 0: #check if we have any incoming message
                 message = pbm.SecureChat()
