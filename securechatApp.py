@@ -33,11 +33,12 @@ class Logger:
         self.file.flush()
 
 class secure_chat_UI(LogMixin):
-    def __init__(self, local_peer, remote_peer):
+    def __init__(self, local_peer, remote_peer, crypto_info):
         self.local_peer = local_peer
         self.remote_peer = remote_peer
+        self.crypto_info = crypto_info
 
-    def certificate_window(self, window, user):
+    def certificate_window(self, window):
         window_lines, window_cols = window.getmaxyx()
         window.bkgd(curses.A_NORMAL, curses.color_pair(2))
         window.box()
@@ -45,7 +46,7 @@ class secure_chat_UI(LogMixin):
         window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
         window.addstr(2, 1, '{}'.format(self.remote_peer))
         if user.crypto.peer_cert is not None:
-            window.addstr(3, 1, '{}'.format(user.crypto.peer_cert))
+            window.addstr(3, 1, '{}'.format(self.crypto_info.crypto.peer_cert))
         window.refresh()
         while True:
             #log.put('Updated certificate')
@@ -157,13 +158,10 @@ class secure_chat_UI(LogMixin):
                 log.put('[{}] TX - new message'.format(datetime.datetime.today().ctime()))
             time.sleep(0.5)
 
-    def main_app(self, stdscr, remotePeer, localUser, user):
-
+    def main_app(self, stdscr):
         ### curses set up
-
         #Clear screen
         stdscr.clear()
-
         curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
         #User echo to screen
@@ -181,8 +179,6 @@ class secure_chat_UI(LogMixin):
         input_pad = curses.newwin(window_h - h_splitter, v_splitter, h_splitter, 0)
         certificate_pad = curses.newwin(h_l_splitter, window_w - v_splitter, 0, v_splitter)
         logbook_pad = curses.newwin(window_h - h_l_splitter, window_w - v_splitter, h_l_splitter, v_splitter)
-
-
         #None arguments are for testing
 
         inbox = SimpleQueue()
@@ -192,12 +188,10 @@ class secure_chat_UI(LogMixin):
         chat_history = threading.Thread(target=self.chat_window, args=(chat_pad, log, inbox))
         chat_history.daemon = True
         chat_history.start()
-        time.sleep(1)
 
-        cert_view = threading.Thread(target=self.certificate_window, args=(certificate_pad, log, user))
+        cert_view = threading.Thread(target=self.certificate_window, args=(certificate_pad, log))
         cert_view.daemon = True
         cert_view.start()
-        time.sleep(1)
 
         chat_sender = threading.Thread(target=self.input_window, args=(input_pad, log, outbox, inbox))
         chat_sender.daemon = True
@@ -207,14 +201,9 @@ class secure_chat_UI(LogMixin):
         logbook = threading.Thread(target=self.logbook_window, args=(logbook_pad, log))
         logbook.daemon = True
         logbook.start()
-        time.sleep(1)
 
-        # if not user.isInitiator:
-        #     user.set_remote_address(remotePeer.get('ipAddr'))
-        #     user.force_request()
-
-        chat_rx = chat.Receiver(local_user=localUser, crypto=user.crypto, inbox=inbox)
-        chat_tx = chat.Sender(remote_peer=remotePeer, crypto=user.crypto, outbox=outbox)
+        chat_rx = chat.Receiver(local_user=self.local_peer, crypto=self.crypto_info.crypto, inbox=inbox)
+        chat_tx = chat.Sender(remote_peer=self.remote_peer, crypto=self.crypto_info.crypto, outbox=outbox)
 
         chat_rx.run()
         chat_tx.run()
@@ -223,6 +212,9 @@ class secure_chat_UI(LogMixin):
         cert_view.join()
         chat_sender.join()
         logbook.join()
+
+    def launch(self):
+        wrapper(self.main_app, peer, local_user)
 
 def input_argument():
     parser = argparse.ArgumentParser(description='Secure Chat client with message self destruct')
