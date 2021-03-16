@@ -60,7 +60,7 @@ class Sender(object, LogMixin):
     def __init__(self, crypto, remote_peer, outbox):
         self.remote_peer = remote_peer
         self.tx_sock = None
-        self.outbox = outbox
+        self.outbox_queue = outbox
         self.crypto = crypto
 
     def connect(self):
@@ -72,11 +72,11 @@ class Sender(object, LogMixin):
 
     def sender_loop(self):
         while True:
-            message = self.crypto.encrypt(self.outbox.get())
+            message = self.crypto.encrypt(self.outbox_queue.get())
             self.tx_sock.send(message, flags=zmq.NOBLOCK)
 
-    def outboxQueue(self):
-        return self.outboxQueue
+    def get_outbox_queue(self):
+        return self.outbox_queue
 
     def run(self):
         self.connect()
@@ -89,7 +89,7 @@ class Receiver(object, LogMixin):
     def __init__(self, crypto, local_user, inbox):
         self.local_user = local_user
         self.rx_sock = None
-        self.inbox = inbox
+        self.inbox_queue = inbox
         self.crypto = crypto
 
     def connect(self):
@@ -100,10 +100,10 @@ class Receiver(object, LogMixin):
     def receiver_loop(self):
         while True:
             message = self.crypto.decrypt(self.rx_sock.recv())
-            self.inbox.put(message)
+            self.inbox_queue.put(message)
 
-    def inboxQueue(self):
-        return self.inboxQueue
+    def get_inbox_queue(self):
+        return self.inbox_queue
 
     def run(self):
         self.connect()
