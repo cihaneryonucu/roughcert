@@ -176,31 +176,9 @@ class CryptoPrimitives(LogMixin):
         tx_sock = self.__socket
         client_secret, secret_byte_size = self.__client_round_1(tx_sock)
 
-        # Round 2 listen
-        self.logger.info('-----Round 2 starts-----')
-        server_hey = tx_sock.recv()
-        server_secret = tx_sock.recv()
-        server_secret_signed = tx_sock.recv()
-        server_cert_raw = tx_sock.recv()
-
-        server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
-        self.peer_cert = server_cert
-
-        try:
-            CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(),
-                                           hashes.SHA256())
-            # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
-            self.logger.info('Server certificate verified.')
-        except cryptography.exceptions.InvalidSignature:
-            self.logger.info("Certificate verification failed, invalid CA")
+        server_cert, server_secret = self.__client_round_2(CA_pub_key, tx_sock)
+        if server_cert is None:
             return None
-        try:
-            server_cert.public_key().verify(server_secret_signed, server_secret, padding.PKCS1v15(), hashes.SHA256())
-            self.logger.info('Server signature verified')
-        except cryptography.exceptions.InvalidSignature:
-            self.logger.info("Server signature verification failed, invalid key or signature")
-            return None
-        self.logger.info('-----Round 2 ends-----')
         # Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
         self.logger.info('-----Round 3 starts-----')
         premaster_secret = secrets.token_bytes(secret_byte_size)
@@ -241,6 +219,32 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __client_round_2(self, CA_pub_key, tx_sock):
+        # Round 2 listen
+        self.logger.info('-----Round 2 starts-----')
+        server_hey = tx_sock.recv()
+        server_secret = tx_sock.recv()
+        server_secret_signed = tx_sock.recv()
+        server_cert_raw = tx_sock.recv()
+        server_cert = x509.load_pem_x509_certificate(server_cert_raw, default_backend())
+        self.peer_cert = server_cert
+        try:
+            CA_pub_key.public_key().verify(server_cert.signature, server_cert.tbs_certificate_bytes, padding.PKCS1v15(),
+                                           hashes.SHA256())
+            # CA_pub_key.public_key().verify(server_cert.signature,server_cert.tbs_certificate_bytes,padding.PKCS1v15(),hashes.SHA256())
+            self.logger.info('Server certificate verified.')
+        except cryptography.exceptions.InvalidSignature:
+            self.logger.info("Certificate verification failed, invalid CA")
+            return None, None
+        try:
+            server_cert.public_key().verify(server_secret_signed, server_secret, padding.PKCS1v15(), hashes.SHA256())
+            self.logger.info('Server signature verified')
+        except cryptography.exceptions.InvalidSignature:
+            self.logger.info("Server signature verification failed, invalid key or signature")
+            return None, None
+        self.logger.info('-----Round 2 ends-----')
+        return server_cert, server_secret
 
     def __client_round_1(self, tx_sock):
         # TLS like key derivation: Round 1
