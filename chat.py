@@ -33,10 +33,10 @@ class User(object):
             self.control_socket.bind('tcp://*:{}'.format(self.control_port))
             message = self.control_socket.recv_string()
             if message == 'HSK':
-                self.crypto = Crypto_Primitives(self.control_socket,
-                                            import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
-                                            import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
-                                            import_certificate('./credentials/CA_cert.pem'))
+                self.crypto = CryptoPrimitives(self.control_socket,
+                                               import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
+                                               import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
+                                               import_certificate('./credentials/CA_cert.pem'))
                 self.crypto.establish_session_key(False)
                 self.control_socket.send_string('ACK')
             elif message == 'ACK': # for the initiator to kill this thread
@@ -47,10 +47,10 @@ class User(object):
         self.control_remote = zmq.Context().instance().socket(zmq.PAIR)
         self.control_remote.connect('tcp://{}:{}'.format(self.remote_peer_address, self.control_port))
         self.control_remote.send_string('HSK')
-        self.crypto = Crypto_Primitives(self.control_remote,
-                                        import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
-                                        import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
-                                        import_certificate('./credentials/CA_cert.pem'))
+        self.crypto = CryptoPrimitives(self.control_remote,
+                                       import_private_key('./credentials/{}_private_key.pem'.format(self.localUser.get('keyBase'))),
+                                       import_certificate('./credentials/{}_cert.pem'.format(self.localUser.get('keyBase'))),
+                                       import_certificate('./credentials/CA_cert.pem'))
         self.crypto.establish_session_key(True)
 
     def run(self):

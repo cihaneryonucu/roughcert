@@ -145,7 +145,7 @@ def export_cert(filename, cert):
         f.write(cert.public_bytes(serialization.Encoding.PEM))
 
 
-class Crypto_Primitives(LogMixin):
+class CryptoPrimitives(LogMixin):
     def __init__(self, socket, private_key, cert, CA_pub_key):
         self.socket = socket
         self.__private_key = private_key
