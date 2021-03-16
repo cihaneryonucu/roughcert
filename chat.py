@@ -1,15 +1,12 @@
 if __name__ == '__main__':
     raise Exception("This module cannot be run as an executable!")
 
-import zmq
 import threading
-
 from Crypto import *
+from LogMixin import LogMixin
 
-import message_pb2
-from queue import SimpleQueue
 
-class User(object):
+class User(object, LogMixin):
     def __init__(self, control_port=9999, localUser=None):
         self.control_port = control_port
         self.control_socket = None
@@ -59,7 +56,7 @@ class User(object):
         thread.start()
 
 
-class Sender(object):
+class Sender(object, LogMixin):
     def __init__(self, crypto, remote_peer, outbox):
         self.remote_peer = remote_peer
         self.tx_sock = None
@@ -69,8 +66,7 @@ class Sender(object):
     def connect(self):
         self.tx_sock = zmq.Context().instance().socket(zmq.PAIR)
         self.tx_sock.connect('tcp://{}:{}'.format(self.remote_peer.get('ipAddr'), self.remote_peer.get('port')))
-       
-        
+
     def receive_message(self):
         self.tx_sock.recv()
 
@@ -89,7 +85,7 @@ class Sender(object):
         thread.start()
 
 
-class Receiver(object):
+class Receiver(object, LogMixin):
     def __init__(self, crypto, local_user, inbox):
         self.local_user = local_user
         self.rx_sock = None
