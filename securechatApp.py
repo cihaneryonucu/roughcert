@@ -37,13 +37,13 @@ class secure_chat_UI(LogMixin):
         self.local_peer = local_peer
         self.remote_peer = remote_peer
 
-    def certificate_window(self, window, log, remotePeer, user):
+    def certificate_window(self, window, user):
         window_lines, window_cols = window.getmaxyx()
         window.bkgd(curses.A_NORMAL, curses.color_pair(2))
         window.box()
         title = " Peer certificate "
         window.addstr(0, int((window_cols - len(title)) / 2 + 1), title)
-        window.addstr(2, 1, '{}'.format(remotePeer))
+        window.addstr(2, 1, '{}'.format(self.remote_peer))
         if user.crypto.peer_cert is not None:
             window.addstr(3, 1, '{}'.format(user.crypto.peer_cert))
         window.refresh()
@@ -67,16 +67,16 @@ class secure_chat_UI(LogMixin):
             window.scroll(1)
             window.refresh()
 
-    def sanitize_chat_history(self, buffer, remotePeer):
+    def sanitize_chat_history(self, buffer):
         require_sanitize = 0
         indexes = []
         for msg in buffer:
-            if int(datetime.datetime.now().strftime("%s")) * 1000 > msg.message.timestamp_expiration and msg.sender.name == remotePeer.get('username'):
+            if int(datetime.datetime.now().strftime("%s")) * 1000 > msg.message.timestamp_expiration and msg.sender.name == self.remote_peer.get('username'):
                 indexes.append(buffer.index(msg))
                 require_sanitize = 1
         return indexes, require_sanitize
 
-    def chat_window(self, window, log, inbox, localUser, remotePeer):
+    def chat_window(self, window, log, inbox, localUser):
         window_lines, window_cols = window.getmaxyx()
         bottom_line = window_lines - 2
         window.scrollok(1)
@@ -122,12 +122,9 @@ class secure_chat_UI(LogMixin):
                 window.refresh()
                 log.put('[{}] RX - new message'.format(datetime.datetime.today().ctime()))
 
-            indexes, sanitized = self.sanitize_chat_history(message_buffer, remotePeer)
-         
+            indexes, sanitized = self.sanitize_chat_history(message_buffer)
 
-
-
-    def input_window(self, window, log, outbox, inbox, localUser, remotePeer):
+    def input_window(self, window, log, outbox, inbox, localUser):
         window_lines, window_cols = window.getmaxyx()
         window.bkgd(curses.A_NORMAL, curses.color_pair(2))
         window.clear()
@@ -149,8 +146,8 @@ class secure_chat_UI(LogMixin):
             if s is not None and s != "":
                 message.sender.name = local_user.get('username')
                 message.sender.public_ip = local_user.get('ipAddr')
-                message.recepient.name = remotePeer.get('username')
-                message.recepient.public_ip = remotePeer.get('ipAddr')
+                message.recepient.name = self.remote_peer.get('username')
+                message.recepient.public_ip = self.remote_peer.get('ipAddr')
                 message.message.message = s
                 message.message.timestamp_generated = int(datetime.datetime.now().strftime("%s")) * 1000
                 message.message.timestamp_expiration = int(datetime.datetime.now().strftime("%s")) * 1000 + 60 * 1000
@@ -192,17 +189,17 @@ class secure_chat_UI(LogMixin):
         outbox = SimpleQueue()
         log = SimpleQueue()
 
-        chat_history = threading.Thread(target=self.chat_window, args=(chat_pad, log, inbox, localUser, remotePeer))
+        chat_history = threading.Thread(target=self.chat_window, args=(chat_pad, log, inbox, localUser))
         chat_history.daemon = True
         chat_history.start()
         time.sleep(1)
 
-        cert_view = threading.Thread(target=self.certificate_window, args=(certificate_pad, log, remotePeer, user))
+        cert_view = threading.Thread(target=self.certificate_window, args=(certificate_pad, log, user))
         cert_view.daemon = True
         cert_view.start()
         time.sleep(1)
 
-        chat_sender = threading.Thread(target=self.input_window, args=(input_pad, log, outbox, inbox, localUser, remotePeer))
+        chat_sender = threading.Thread(target=self.input_window, args=(input_pad, log, outbox, inbox, localUser))
         chat_sender.daemon = True
         chat_sender.start()
         time.sleep(1)
