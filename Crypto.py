@@ -158,12 +158,9 @@ class CryptoPrimitives(LogMixin):
 
     def establish_session_key(self, isClient):  # if client, you should specify the address and port
         if isClient:
-            key = self.__initiate_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
+            self.__fernet = self.__initiate_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
         else:
-            key = self.__listen_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
-
-        self.__fernet = Fernet(key)
-        self.__session_key = key
+            self.__fernet = self.__listen_key_derivation(self.__private_key, self.cert, self.CA_pub_key)
 
     def encrypt(self, message):  # Message type is byte
         return self.__fernet.encrypt(message)
@@ -183,12 +180,12 @@ class CryptoPrimitives(LogMixin):
 
         premaster_secret = self.__client_round_3(client_cert, client_private_key, secret_byte_size, server_cert,
                                                  tx_sock)
-        fernet, key = self.__client_round_4(client_secret, premaster_secret, server_secret)
+        fernet = self.__client_round_4(client_secret, premaster_secret, server_secret)
         finalize_client, finalize_server = self.__client_round_5(fernet, tx_sock)
 
         if finalize_client == finalize_server:
             self.logger.info('Finalized')
-            return key
+            return fernet
         else:
             self.logger.info('Problem with the derived key')
             return None
@@ -197,20 +194,17 @@ class CryptoPrimitives(LogMixin):
         rx_sock = self.__socket
 
         client_secret = self.__server_round_1(rx_sock)
-
         server_secret = self.__server_round_2(rx_sock, server_cert, server_private_key)
-
         premaster_secret = self.__server_round_3(CA_pub_key, rx_sock, server_private_key)
         if premaster_secret is None:
             return None
 
-        fernet, key = self.__server_round_4(client_secret, premaster_secret, server_secret)
-
+        fernet = self.__server_round_4(client_secret, premaster_secret, server_secret)
         finalize_client, finalize_server = self.__server_round_5(fernet, rx_sock)
 
         if finalize_client == finalize_server:
             self.logger.info('Finalized')
-            return key
+            return fernet
         else:
             self.logger.info('Problem with the derived key')
             return None
@@ -234,9 +228,10 @@ class CryptoPrimitives(LogMixin):
         digest.update(premaster_secret)
         key = digest.finalize()
         key = base64.urlsafe_b64encode(key)
+        self.__session_key = key
         fernet = Fernet(key)
         self.logger.info('-----Round 4 ends-----')
-        return fernet, key
+        return fernet
 
     def __server_round_3(self, CA_pub_key, rx_sock, server_private_key):
         # Round 3: Recieve client cert, signed and encrpyted secret and verify them
@@ -304,9 +299,10 @@ class CryptoPrimitives(LogMixin):
         digest.update(premaster_secret)
         key = digest.finalize()
         key = base64.urlsafe_b64encode(key)  # Encode it to string
+        self.__session_key = key
         fernet = Fernet(key)
         self.logger.info('-----Round 4 ends-----')
-        return fernet, key
+        return fernet
 
     def __client_round_3(self, client_cert, client_private_key, secret_byte_size, server_cert, tx_sock):
         # Round 3: Client sends the encrypted pre-master secret, signature, and his certificate for mutual auth.
