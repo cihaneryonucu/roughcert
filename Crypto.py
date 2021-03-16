@@ -196,11 +196,7 @@ class CryptoPrimitives(LogMixin):
     def __listen_key_derivation(self, server_private_key, server_cert, CA_pub_key):
         rx_sock = self.__socket
 
-        # Round 1 listen
-        self.logger.info('----- Server Round 1 starts-----')
-        client_hey = rx_sock.recv()
-        client_secret = rx_sock.recv()
-        self.logger.info('-----Round 1 ends-----')
+        client_secret = self.__server_round_1(rx_sock)
 
         # Round 2 send cert, response and secret
         self.logger.info('-----Round 2 starts-----')
@@ -270,6 +266,14 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __server_round_1(self, rx_sock):
+        # Round 1 listen
+        self.logger.info('----- Server Round 1 starts-----')
+        client_hey = rx_sock.recv()
+        client_secret = rx_sock.recv()
+        self.logger.info('-----Round 1 ends-----')
+        return client_secret
 
     def __client_round_5(self, fernet, tx_sock):
         # Round 5: Finalize by sending a message
