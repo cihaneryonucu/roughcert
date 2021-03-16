@@ -76,7 +76,7 @@ class secure_chat_UI(LogMixin):
                 require_sanitize = 1
         return indexes, require_sanitize
 
-    def chat_window(self, window, log, inbox, localUser):
+    def chat_window(self, window, log, inbox):
         window_lines, window_cols = window.getmaxyx()
         bottom_line = window_lines - 2
         window.scrollok(1)
@@ -99,7 +99,7 @@ class secure_chat_UI(LogMixin):
                 window.addstr(2, int((window_cols - len(title)) / 2 + 1), title)
                 for message in message_buffer:
                     stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
-                    if message.sender.name == localUser.get("username"):
+                    if message.sender.name == self.local_peer.get("username"):
                         window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
                     else:
                         window.addstr(bottom_line, 1, stringToAppend)
@@ -114,7 +114,7 @@ class secure_chat_UI(LogMixin):
                 message.ParseFromString(encoded_message)
                 message_buffer.append(message)
                 stringToAppend = "{} - {}:\t{}".format(message.message.timestamp_generated, message.sender.name, message.message.message)
-                if message.sender.name == localUser.get("username"):
+                if message.sender.name == self.local_peer.get("username"):
                     window.addstr(bottom_line, 1, stringToAppend, curses.A_REVERSE)
                 else:
                     window.addstr(bottom_line, 1, stringToAppend)
@@ -124,12 +124,12 @@ class secure_chat_UI(LogMixin):
 
             indexes, sanitized = self.sanitize_chat_history(message_buffer)
 
-    def input_window(self, window, log, outbox, inbox, localUser):
+    def input_window(self, window, log, outbox, inbox):
         window_lines, window_cols = window.getmaxyx()
         window.bkgd(curses.A_NORMAL, curses.color_pair(2))
         window.clear()
         window.box()
-        title = " Input - User: {}".format(localUser.get("username"))
+        title = " Input - User: {}".format(self.local_peer.get("username"))
         window.addstr(0, int((window_cols - len(title)) / 2), title)
         window.refresh()
         curses.curs_set(1)
@@ -139,7 +139,7 @@ class secure_chat_UI(LogMixin):
         while True:
             window.clear()
             window.box()
-            title = " Input - User: {} ".format(localUser.get("username"))
+            title = " Input - User: {} ".format(self.local_peer.get("username"))
             window.addstr(0, int((window_cols - len(title)) / 2), title)
             window.refresh()
             s = window.getstr(1, 1).decode('utf-8')
@@ -189,7 +189,7 @@ class secure_chat_UI(LogMixin):
         outbox = SimpleQueue()
         log = SimpleQueue()
 
-        chat_history = threading.Thread(target=self.chat_window, args=(chat_pad, log, inbox, localUser))
+        chat_history = threading.Thread(target=self.chat_window, args=(chat_pad, log, inbox))
         chat_history.daemon = True
         chat_history.start()
         time.sleep(1)
@@ -199,7 +199,7 @@ class secure_chat_UI(LogMixin):
         cert_view.start()
         time.sleep(1)
 
-        chat_sender = threading.Thread(target=self.input_window, args=(input_pad, log, outbox, inbox, localUser))
+        chat_sender = threading.Thread(target=self.input_window, args=(input_pad, log, outbox, inbox))
         chat_sender.daemon = True
         chat_sender.start()
         time.sleep(1)
