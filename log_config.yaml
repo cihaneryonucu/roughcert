@@ -17,6 +17,10 @@ loggers:
         level: DEBUG
         handlers: [cryptoLogging]
         propagate: no
+    secure_chat_UI:
+        level: DEBUG
+        handlers: [filelogging]
+        propagate: no
 
 formatters:
     simple:
