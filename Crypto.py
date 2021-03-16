@@ -198,18 +198,7 @@ class CryptoPrimitives(LogMixin):
 
         client_secret = self.__server_round_1(rx_sock)
 
-        # Round 2 send cert, response and secret
-        self.logger.info('-----Round 2 starts-----')
-        secret_byte_size = 16
-        server_secret = secrets.token_bytes(secret_byte_size)
-
-        signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
-
-        rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
-        rx_sock.send(server_secret, flags=zmq.NOBLOCK)
-        rx_sock.send(signed_server_secret, flags=zmq.NOBLOCK)
-        rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
-        self.logger.info('-----Round 2 ends-----')
+        server_secret = self.__server_round_2(rx_sock, server_cert, server_private_key)
 
         # Round 3: Recieve client cert, signed and encrpyted secret and verify them
         self.logger.info('-----Round 3 starts-----')
@@ -228,14 +217,14 @@ class CryptoPrimitives(LogMixin):
             self.logger.info('Client certificate verified.')
         except cryptography.exceptions.InvalidSignature:
             self.logger.info("Certificate verification failed, invalid CA or certificate")
-            return None
+            # return None
         try:
             client_cert.public_key().verify(premaster_secret_signed, premaster_secret, padding.PKCS1v15(),
                                             hashes.SHA256())
             self.logger.info('Premaster signature verified.')
         except cryptography.exceptions.InvalidSignature:
             self.logger.info("Premaster signature verification failed, invalid key or signature")
-            return None
+            # return None
         self.logger.info('-----Round 3 ends-----')
 
         # Round 4: Key derivation by collected secrets. Hash first, use the hash for key
@@ -266,6 +255,19 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __server_round_2(self, rx_sock, server_cert, server_private_key):
+        # Round 2 send cert, response and secret
+        self.logger.info('-----Round 2 starts-----')
+        secret_byte_size = 16
+        server_secret = secrets.token_bytes(secret_byte_size)
+        signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
+        rx_sock.send_string('hej back', flags=zmq.NOBLOCK)
+        rx_sock.send(server_secret, flags=zmq.NOBLOCK)
+        rx_sock.send(signed_server_secret, flags=zmq.NOBLOCK)
+        rx_sock.send(server_cert.public_bytes(serialization.Encoding.PEM), flags=zmq.NOBLOCK)
+        self.logger.info('-----Round 2 ends-----')
+        return server_secret
 
     def __server_round_1(self, rx_sock):
         # Round 1 listen
