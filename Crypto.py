@@ -174,24 +174,17 @@ class CryptoPrimitives(LogMixin):
     def __initiate_key_derivation(self, client_private_key, client_cert, CA_pub_key):
 
         tx_sock = self.__socket
-        client_secret, secret_byte_size = self.__client_round_1(tx_sock)
 
+        client_secret, secret_byte_size = self.__client_round_1(tx_sock)
         server_cert, server_secret = self.__client_round_2(CA_pub_key, tx_sock)
+
         if server_cert is None:
             return None
+
         premaster_secret = self.__client_round_3(client_cert, client_private_key, secret_byte_size, server_cert,
                                                  tx_sock)
-
         fernet, key = self.__client_round_4(client_secret, premaster_secret, server_secret)
-
-        # Round 5: Finalize by sending a message
-        self.logger.info('-----Round 5 starts-----')
-        ct_finalize_server = tx_sock.recv()
-        finalize_server = fernet.decrypt(ct_finalize_server)
-
-        finalize_client = b"Finalize!"
-        ct_finalize_client = fernet.encrypt(finalize_client)
-        tx_sock.send(ct_finalize_client, flags=zmq.NOBLOCK)
+        finalize_client, finalize_server = self.__client_round_5(fernet, tx_sock)
 
         if finalize_client == finalize_server:
             self.logger.info('Finalized')
@@ -199,6 +192,16 @@ class CryptoPrimitives(LogMixin):
         else:
             self.logger.info('Problem with the derived key')
             return None
+
+    def __client_round_5(self, fernet, tx_sock):
+        # Round 5: Finalize by sending a message
+        self.logger.info('-----Round 5 starts-----')
+        ct_finalize_server = tx_sock.recv()
+        finalize_server = fernet.decrypt(ct_finalize_server)
+        finalize_client = b"Finalize!"
+        ct_finalize_client = fernet.encrypt(finalize_client)
+        tx_sock.send(ct_finalize_client, flags=zmq.NOBLOCK)
+        return finalize_client, finalize_server
 
     def __client_round_4(self, client_secret, premaster_secret, server_secret):
         # Round 4: Key derivation by collected secrets. Hash first, use the hash for key
