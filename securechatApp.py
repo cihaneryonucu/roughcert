@@ -272,7 +272,7 @@ if __name__ == "__main__":
             connection_manager.remove_user()
             sys.exit(0)
 
-        user = chat.User(localUser=local_user)
+        user = chat.User(local_user=local_user)
         user.run()
 
         questions = [

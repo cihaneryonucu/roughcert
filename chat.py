@@ -7,12 +7,12 @@ from LogMixin import LogMixin
 
 
 class User(object, LogMixin):
-    def __init__(self, control_port=9999, localUser=None):
+    def __init__(self, control_port=9999, local_user=None):
         self.control_port = control_port
         self.control_socket = None
         self.control_remote = None
         self.crypto = None
-        self.localUser = localUser
+        self.localUser = local_user
         self.handshake_is_done = 0
         self.remote_address = None
         self.isInitiator = False
@@ -95,7 +95,6 @@ class Receiver(object, LogMixin):
     def connect(self):
         self.rx_sock = zmq.Context().instance().socket(zmq.PAIR)
         self.rx_sock.bind('tcp://{}:{}'.format(self.local_user.get('ipAddr'), self.local_user.get('port')))
-
 
     def receiver_loop(self):
         while True:
