@@ -15,9 +15,21 @@ loggers:
         propagate: no
     Crypto_Primitives:
         level: DEBUG
-        handlers: [cryptoLogging]
+        handlers: [cryptoLogging, filelogging]
         propagate: no
     secure_chat_UI:
+        level: DEBUG
+        handlers: [filelogging]
+        propagate: no
+    User:
+        level: DEBUG
+        handlers: [filelogging]
+        propagate: no
+    Sender:
+        level: DEBUG
+        handlers: [filelogging]
+        propagate: no
+    Receiver:
         level: DEBUG
         handlers: [filelogging]
         propagate: no
