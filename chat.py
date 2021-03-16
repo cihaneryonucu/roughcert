@@ -6,7 +6,7 @@ from Crypto import *
 from LogMixin import LogMixin
 
 
-class User(object, LogMixin):
+class User(LogMixin):
     def __init__(self, control_port=9999, local_user=None):
         self.control_port = control_port
         self.control_socket = None
@@ -62,7 +62,7 @@ class User(object, LogMixin):
         thread.start()
 
 
-class Sender(object, LogMixin):
+class Sender(LogMixin):
     def __init__(self, crypto, remote_peer, outbox):
         self.remote_peer = remote_peer
         self.tx_sock = None
@@ -89,7 +89,7 @@ class Sender(object, LogMixin):
         thread.start()
 
 
-class Receiver(object, LogMixin):
+class Receiver(LogMixin):
     def __init__(self, crypto, local_user, inbox):
         self.local_user = local_user
         self.rx_sock = None
