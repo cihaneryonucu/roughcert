@@ -265,7 +265,8 @@ class Crypto_Primitives(LogMixin):
 
         # Round 2 send cert, response and secret
         self.logger.info('-----Round 2 starts-----')
-        server_secret = secrets.token_bytes(16)
+        secret_byte_size = 16
+        server_secret = secrets.token_bytes(secret_byte_size)
 
         signed_server_secret = server_private_key.sign(server_secret, padding.PKCS1v15(), hashes.SHA256())
 
@@ -332,7 +333,7 @@ class Crypto_Primitives(LogMixin):
             self.logger.info('Problem with the derived key')
             return None
 
-generate_private_key('a')
+# generate_private_key('a')
 # For testing uncomment below and run as:
 # server:python3 Crypto.py s [local_address] [local_port] - for example: python3 Crypto.py s 127.0.0.1 1111
 # client:python3 Crypto.py c [target_address] [target_port] - for example: python3 Crypto.py c 127.0.0.1 1111
